@@ -1,0 +1,361 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --background: #FDF8F5;
+  --foreground: #1A0808;
+  --card: #FFFFFF;
+  --card-foreground: #1A0808;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A0808;
+  --primary: #7D0020;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FAF0EB;
+  --secondary-foreground: #1A0808;
+  --muted: #F0E4DF;
+  --muted-foreground: #8A6460;
+  --accent: #7D0020;
+  --accent-foreground: #FFFFFF;
+  --destructive: #CC3B3B;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(26, 8, 8, 0.1);
+  --input: transparent;
+  --input-background: #F0E4DF;
+  --switch-background: #C8A8A5;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #7D0020;
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.75rem;
+  --sidebar: #FAF0EB;
+  --sidebar-foreground: #1A0808;
+  --sidebar-primary: #7D0020;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F0E4DF;
+  --sidebar-accent-foreground: #1A0808;
+  --sidebar-border: rgba(26, 8, 8, 0.08);
+  --sidebar-ring: #7D0020;
+  --page-bg: #FDF8F5;
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --text-main: #1A0808;
+  --text-muted: #72514E;
+  --heading-color: #1A0808;
+  --accent-color: #7D0020;
+}
+
+body {
+  margin: 0;
+}
+
+.invoice-print-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  box-sizing: border-box;
+  background: white;
+}
+
+.invoice-print-page .invoice-card {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  transform: none;
+  scale: none;
+}
+
+.checkout-input {
+  width: 100%;
+  border: 1px solid #eadbd4;
+  background: #fffaf3;
+  color: #1a0808;
+  border-radius: 999px;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.checkout-input::placeholder {
+  color: #9a7a75;
+}
+
+.checkout-input:focus {
+  border-color: #7d0020;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(125, 0, 32, 0.08);
+}
+
+.auth-input {
+  width: 100%;
+  border: 1px solid #eadbd4;
+  background: #fffaf3;
+  color: #1a0808;
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.auth-input::placeholder {
+  color: #9a7a75;
+}
+
+.auth-input:focus {
+  border-color: #7d0020;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(125, 0, 32, 0.08);
+}
+
+.dark .auth-input {
+  border-color: rgba(201, 160, 96, 0.18);
+  background: rgba(255, 248, 238, 0.08);
+  color: #f6eee8;
+}
+
+.dark .auth-input::placeholder {
+  color: #bfa7a2;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    width: 210mm;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .invoice-print-area,
+  .invoice-print-area * {
+    visibility: visible !important;
+  }
+
+  .invoice-print-area {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 190mm !important;
+    max-width: 190mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    scale: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .invoice-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .invoice-print-page {
+    width: 190mm !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+
+  .invoice-modal,
+  .invoice-modal-content,
+  .invoice-wrapper {
+    position: static !important;
+    display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .invoice-print-area table,
+  .invoice-print-area tr,
+  .invoice-print-area td,
+  .invoice-print-area th,
+  .invoice-print-area .avoid-print-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .no-print,
+  .invoice-actions,
+  button {
+    display: none !important;
+  }
+}
+
+.dark {
+  --background: #0C0406;
+  --foreground: #F8F0EE;
+  --card: #1A0A0D;
+  --card-foreground: #F8F0EE;
+  --popover: #1A0A0D;
+  --popover-foreground: #F8F0EE;
+  --primary: #C9A060;
+  --primary-foreground: #0C0406;
+  --secondary: #22090E;
+  --secondary-foreground: #F8F0EE;
+  --muted: #22090E;
+  --muted-foreground: #9A7A78;
+  --accent: #C9A060;
+  --accent-foreground: #0C0406;
+  --destructive: #8B2020;
+  --destructive-foreground: #F8F0EE;
+  --border: rgba(248, 240, 238, 0.08);
+  --input: rgba(248, 240, 238, 0.06);
+  --input-background: #22090E;
+  --switch-background: #3A1A1F;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #C9A060;
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: #141410;
+  --sidebar-foreground: #F5F3EE;
+  --sidebar-primary: #C9A96E;
+  --sidebar-primary-foreground: #0A0A08;
+  --sidebar-accent: #1C1B16;
+  --sidebar-accent-foreground: #F5F3EE;
+  --sidebar-border: rgba(245, 243, 238, 0.08);
+  --sidebar-ring: #C9A96E;
+  --page-bg: #0C0406;
+  --card-bg: rgba(26, 10, 13, 0.88);
+  --text-main: #F8F0EE;
+  --text-muted: #D0BAB6;
+  --heading-color: #FFF8F2;
+  --accent-color: #C9A060;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+}
