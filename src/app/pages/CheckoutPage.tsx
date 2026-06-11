@@ -136,9 +136,9 @@ export function CheckoutPage() {
       payment_provider: paymentMethod,
       payment_screenshot: paymentProof,
       items: cart.map((line) => ({
-        product_id: line.id,
+        product_id: line.productId,
         variant_id: line.variantId,
-        color_variant_id: line.colorVariants[0]?.id,
+        color_variant_id: line.colorVariantId ?? undefined,
         quantity: line.quantity,
       })),
       notes: notes.trim(),
@@ -335,24 +335,42 @@ function OrderSummary({
       </div>
 
       <div className="space-y-4">
-        {cart.map((line) => (
-          <div key={line.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-2xl bg-[#fff8ee] p-3">
-            <div className="aspect-[3/4] overflow-hidden rounded-xl bg-[#f0e4df]">
-              {line.img ? <img src={line.img} alt={line.name} className="h-full w-full object-cover" /> : null}
-            </div>
-            <div className="min-w-0">
-              <p className="line-clamp-2 text-sm font-extrabold leading-snug">{line.name}</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a6460]">Qty {line.quantity}</p>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <SummaryMini label="Unit" value={money(lineUnit(line))} />
-                <SummaryMini label="Total" value={money(lineTotal(line))} strong />
+        {cart.map((line) => {
+          const variantBadges: string[] = [];
+          if (line.selectedColor) variantBadges.push(line.selectedColor);
+          if (line.selectedSize) variantBadges.push(line.selectedSize);
+          if (line.selectedFabric) variantBadges.push(line.selectedFabric);
+          if (line.isStitched !== undefined && line.selectedFabric) {
+            variantBadges.push(line.isStitched ? "Stitched" : "Unstitched");
+          }
+          return (
+            <div key={line.cartKey} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-2xl bg-[#fff8ee] p-3">
+              <div className="aspect-[3/4] overflow-hidden rounded-xl bg-[#f0e4df]">
+                {line.img ? <img src={line.img} alt={line.name} className="h-full w-full object-cover" /> : null}
               </div>
-              {lineDiscount(line) > 0 && (
-                <p className="mt-2 text-xs font-extrabold text-[#7d0020]">Discount {money(lineDiscount(line))}</p>
-              )}
+              <div className="min-w-0">
+                <p className="line-clamp-2 text-sm font-extrabold leading-snug">{line.name}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a6460]">Qty {line.quantity}</p>
+                {variantBadges.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {variantBadges.map((badge) => (
+                      <span key={badge} className="inline-flex items-center rounded-full bg-[#f0e4df] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#7d4a30]">
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <SummaryMini label="Unit" value={money(lineUnit(line))} />
+                  <SummaryMini label="Total" value={money(lineTotal(line))} strong />
+                </div>
+                {lineDiscount(line) > 0 && (
+                  <p className="mt-2 text-xs font-extrabold text-[#7d0020]">Discount {money(lineDiscount(line))}</p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-5 space-y-3 border-t border-[#eadbd4] pt-5 text-sm">

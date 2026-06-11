@@ -1,11 +1,12 @@
-import { apiClient, safeRequest } from "./api";
+import { cachedGet, safeRequest } from "./api";
 import type { ApiCategory, PaginatedResponse } from "./types";
 
 export async function fetchCategories(): Promise<PaginatedResponse<ApiCategory>> {
-  const { data } = await apiClient.get<PaginatedResponse<ApiCategory>>(
+  return cachedGet<PaginatedResponse<ApiCategory>>(
     "/categories/",
+    undefined,
+    5 * 60 * 1000,
   );
-  return data;
 }
 
 export async function fetchCategoryBySlug(slug: string): Promise<ApiCategory> {

@@ -18,6 +18,7 @@ import type {
   ApiHomepageStory,
   ApiProduct,
   ApiProductColorVariant,
+  ApiProductVariant,
   ApiReview,
 } from "@/services/types";
 
@@ -28,12 +29,49 @@ export interface UiCategory {
   img: string;
 }
 
+export interface UiColorVariantImage {
+  id: number;
+  imageUrl: string;
+  thumbnailUrl: string;
+  altText: string;
+  sortOrder: number;
+}
+
+export interface UiColorVariant {
+  id: number;
+  colorName: string;
+  colorHex: string | null;
+  stock: number;
+  image: string;
+  images: UiColorVariantImage[];
+}
+
+export interface UiProductVariant {
+  id: number;
+  sku: string;
+  color: string;
+  size: string;
+  fabric: string;
+  isStitched: boolean;
+  stock: number;
+  costPrice: string;
+  regularPrice: string;
+  price: string;
+  salePrice: string | null;
+  effectivePrice: string;
+  colorVariantId: number | null;
+  images: UiColorVariantImage[];
+  isActive: boolean;
+}
+
 export interface UiProduct {
   id: number;
   variantId?: number;
   name: string;
   cat: string;
   categorySlug: string;
+  costPrice: string;
+  sellingPrice: string;
   price: string;
   orig: string | null;
   badge: string;
@@ -45,14 +83,8 @@ export interface UiProduct {
   hasDiscount: boolean;
   discountPercent: number;
   colorVariants: UiColorVariant[];
-}
-
-export interface UiColorVariant {
-  id: number;
-  colorName: string;
-  colorHex: string | null;
-  stock: number;
-  image: string;
+  variants: UiProductVariant[];
+  description: string;
 }
 
 export interface UiTestimonial {
@@ -169,11 +201,19 @@ export function mapApiProduct(
   index: number,
   fallback?: UiProduct,
 ): UiProduct {
-  const imgPath = p.images?.[0]?.image_url || p.images?.[0]?.image;
+  const productImages = p.product_images?.length ? p.product_images : p.images;
+  const imgPath = p.default_image || p.main_image || productImages?.[0]?.thumbnail_url || productImages?.[0]?.image_url || productImages?.[0]?.image;
   const mainImgPath = p.main_image || imgPath;
   const img = mainImgPath ? resolveMediaUrl(mainImgPath) : (fallback?.img ?? "");
-  const hasSale = Boolean(p.has_discount && p.sale_price != null && parseFloat(p.sale_price) < parseFloat(p.base_price));
+  const regularPrice = p.regular_price || p.selling_price || p.base_price;
+  const finalPrice = p.final_price || p.effective_price || p.sale_price || regularPrice;
+  const hasSale = Boolean(
+    p.is_on_sale &&
+    Number(p.discount_percent || 0) > 0 &&
+    parseFloat(finalPrice) < parseFloat(regularPrice),
+  );
   const colorVariants = mapColorVariants(p.color_variants ?? []);
+  const variants = mapVariants(p.variants ?? []);
 
   return {
     id: p.id,
@@ -181,17 +221,21 @@ export function mapApiProduct(
     name: p.name,
     cat: p.category?.name ?? fallback?.cat ?? "Collection",
     categorySlug: p.category?.slug ?? fallback?.categorySlug ?? "",
-    price: formatPkr(p.effective_price),
-    orig: hasSale ? formatPkr(p.base_price) : null,
+    costPrice: formatPkr(p.cost_price),
+    sellingPrice: formatPkr(regularPrice),
+    price: formatPkr(finalPrice),
+    orig: hasSale ? formatPkr(regularPrice) : null,
     badge: productBadge(p),
     img,
     rating: p.average_rating ?? fallback?.rating ?? 0,
     reviews: p.reviews_count ?? fallback?.reviews ?? 0,
     ratingBreakdown: p.rating_breakdown ?? fallback?.ratingBreakdown ?? {},
-    stock: p.stock ?? fallback?.stock ?? 0,
+    stock: p.total_stock ?? p.stock ?? fallback?.stock ?? 0,
     hasDiscount: hasSale,
     discountPercent: Number(p.discount_percent || 0),
     colorVariants,
+    variants,
+    description: p.description ?? "",
   };
 }
 
@@ -202,7 +246,46 @@ function mapColorVariants(variants: ApiProductColorVariant[]): UiColorVariant[] 
     colorHex: variant.color_hex,
     stock: variant.stock,
     image: resolveMediaUrl(variant.image_url || variant.image),
+    images: (variant.images ?? []).map((img) => ({
+      id: img.id,
+      imageUrl: resolveMediaUrl(img.image_url || img.image),
+      thumbnailUrl: resolveMediaUrl(img.thumbnail_url || img.thumbnail || img.image_url || img.image),
+      altText: img.alt_text,
+      sortOrder: img.sort_order,
+    })),
   }));
+}
+
+function mapVariants(variants: ApiProductVariant[]): UiProductVariant[] {
+  return variants.map((v) => {
+    const regularPrice = v.regular_price ?? v.price;
+    const finalPrice = v.final_price ?? v.effective_price ?? v.sale_price ?? v.price;
+    const hasSale = parseFloat(finalPrice) < parseFloat(regularPrice);
+
+    return {
+      id: v.id,
+      sku: v.sku,
+      color: v.color,
+      size: v.size,
+      fabric: v.fabric,
+      isStitched: v.is_stitched ?? false,
+      stock: v.stock ?? 0,
+      costPrice: formatPkr(v.cost_price ?? 0),
+      regularPrice: formatPkr(regularPrice),
+      price: formatPkr(finalPrice),
+      salePrice: hasSale ? formatPkr(finalPrice) : null,
+      effectivePrice: formatPkr(finalPrice),
+      colorVariantId: v.color_variant ?? null,
+      images: (v.images ?? []).map((img) => ({
+        id: img.id,
+        imageUrl: resolveMediaUrl(img.image_url || img.image),
+        thumbnailUrl: resolveMediaUrl(img.thumbnail_url || img.thumbnail || img.image_url || img.image),
+        altText: img.alt_text,
+        sortOrder: img.sort_order,
+      })),
+      isActive: v.is_active ?? true,
+    };
+  });
 }
 
 export function mapApiTestimonial(
@@ -339,15 +422,17 @@ export function useHomepageData(): HomepageData {
     let cancelled = false;
 
     async function load() {
-      const [home, featured, latest, trending, newArrivals, saleProducts, categories] =
+      const home = await fetchHomeContentSafe();
+      const needsFallbackProducts = !home?.featured_products?.length || !home?.lookbook_products?.length;
+      const needsFallbackCategories = !home?.categories?.length;
+      const [featured, latest, trending, newArrivals, saleProducts, categories] =
         await Promise.all([
-          fetchHomeContentSafe(),
-          fetchFeaturedProducts(),
-          fetchLatestProducts(),
-          fetchTrendingProducts(),
+          needsFallbackProducts ? fetchFeaturedProducts() : Promise.resolve([]),
+          needsFallbackProducts ? fetchLatestProducts() : Promise.resolve([]),
+          needsFallbackProducts ? fetchTrendingProducts() : Promise.resolve([]),
           fetchNewArrivalProducts(),
           fetchSaleProducts(),
-          fetchCategoriesList(),
+          needsFallbackCategories ? fetchCategoriesList() : Promise.resolve([]),
         ]);
 
       if (cancelled) return;

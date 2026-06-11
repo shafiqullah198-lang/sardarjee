@@ -20,6 +20,12 @@ class HomepageBanner(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["sort_order"]),
+        ]
+
 
 class HomepageStat(TimeStampedModel):
     class StatType(models.TextChoices):
@@ -39,6 +45,13 @@ class HomepageStat(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["stat_type"]),
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["sort_order"]),
+        ]
+
 
 class HomepageStory(TimeStampedModel):
     title = models.CharField(max_length=255)
@@ -47,6 +60,12 @@ class HomepageStory(TimeStampedModel):
     cta_text = models.CharField(max_length=80, blank=True)
     cta_url = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["created_at"]),
+        ]
 
 
 class HomepageDisplaySettings(TimeStampedModel):
@@ -82,6 +101,10 @@ class CareerOpportunity(TimeStampedModel):
         ordering = ("-created_at",)
         verbose_name = "Career Opportunity"
         verbose_name_plural = "Careers / Opportunities"
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["is_active"]),
+        ]
 
     def __str__(self):
         return self.title

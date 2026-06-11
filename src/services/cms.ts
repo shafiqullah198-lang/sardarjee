@@ -1,9 +1,8 @@
-import { apiClient, safeRequest } from "./api";
+import { apiClient, cachedGet, safeRequest } from "./api";
 import type { ApiCareerOpportunity, ApiHomeContent } from "./types";
 
 export async function fetchHomeContent(): Promise<ApiHomeContent> {
-  const { data } = await apiClient.get<ApiHomeContent>("/cms/home/");
-  return data;
+  return cachedGet<ApiHomeContent>("/cms/home/", undefined, 60 * 1000);
 }
 
 export async function fetchHomeContentSafe(): Promise<ApiHomeContent | null> {

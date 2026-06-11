@@ -82,7 +82,8 @@ function HeroSection({ heroes }: { heroes: ReturnType<typeof useHomepageData>["h
                   muted
                   loop
                   playsInline
-                  preload="auto"
+                  preload="metadata"
+                  poster={imageFallbackUrl || undefined}
                   src={mediaUrl}
                   className="absolute inset-0 h-full w-full object-cover z-0"
                   onCanPlay={(event) => {
@@ -94,7 +95,7 @@ function HeroSection({ heroes }: { heroes: ReturnType<typeof useHomepageData>["h
                     void event.currentTarget.play();
                   }}
                   onError={(event) => {
-                    console.error("Hero video failed to load", mediaUrl, event);
+                    event.preventDefault();
                     setFailedMedia((current) => new Set(current).add(mediaUrl));
                   }}
                 >

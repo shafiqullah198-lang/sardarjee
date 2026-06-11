@@ -17,6 +17,18 @@ export interface ApiCategory {
 export interface ApiProductImage {
   image: string;
   image_url?: string | null;
+  thumbnail?: string | null;
+  thumbnail_url?: string | null;
+  alt_text: string;
+  sort_order: number;
+}
+
+export interface ApiProductColorVariantImage {
+  id: number;
+  image: string | null;
+  image_url?: string | null;
+  thumbnail?: string | null;
+  thumbnail_url?: string | null;
   alt_text: string;
   sort_order: number;
 }
@@ -28,6 +40,7 @@ export interface ApiProductColorVariant {
   stock: number;
   image: string | null;
   image_url?: string | null;
+  images: ApiProductColorVariantImage[];
 }
 
 export interface ApiProductVariant {
@@ -36,16 +49,36 @@ export interface ApiProductVariant {
   size: string;
   color: string;
   fabric: string;
+  is_stitched: boolean;
+  stitching?: string;
+  stock: number;
+  cost_price: string;
+  regular_price?: string;
+  final_price?: string;
   price: string;
+  price_override: string | null;
+  sale_price: string | null;
+  sale_price_override: string | null;
+  effective_price: string;
+  color_variant: number | null;  // FK id
+  images?: ApiProductColorVariantImage[];
+  is_active: boolean;
 }
 
 export interface ApiProduct {
   id: number;
+  product_id?: number;
   name: string;
+  product_name?: string;
   slug: string;
   description: string;
   category: ApiCategory;
   main_image?: string | null;
+  default_image?: string | null;
+  cost_price: string;
+  regular_price?: string;
+  selling_price: string;
+  final_price?: string;
   price: string;
   base_price: string;
   is_on_sale: boolean;
@@ -64,10 +97,13 @@ export interface ApiProduct {
   rating_breakdown?: Record<string, number>;
   status?: string;
   stock?: number;
+  total_stock?: number;
+  is_in_stock?: boolean;
   sku?: string;
   variants: ApiProductVariant[];
   color_variants: ApiProductColorVariant[];
   images: ApiProductImage[];
+  product_images?: ApiProductImage[];
 }
 
 export interface ApiOrderItem {
@@ -76,6 +112,7 @@ export interface ApiOrderItem {
   color_variant_id?: number | null;
   color_variant_name?: string;
   unit_price: string;
+  unit_cost: string;
   quantity: number;
   line_total: string;
 }

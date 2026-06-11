@@ -31,3 +31,12 @@ class Review(TimeStampedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.APPROVED)
     helpful_count = models.PositiveIntegerField(default=0)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["product"]),
+            models.Index(fields=["is_featured"]),
+            models.Index(fields=["is_approved"]),
+        ]

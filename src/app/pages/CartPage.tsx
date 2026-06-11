@@ -26,7 +26,7 @@ export function CartPage() {
   const navigate = useNavigate();
   const [recommendations, setRecommendations] = useState<UiProduct[]>([]);
 
-  const cartIds = useMemo(() => new Set(cart.map((line) => line.id)), [cart]);
+  const cartProductIds = useMemo(() => new Set(cart.map((line) => line.productId)), [cart]);
   const subtotal = cart.reduce((sum, line) => sum + cartLineTotal(line), 0);
   const discount = cart.reduce((sum, line) => {
     if (!line.orig) return sum;
@@ -43,7 +43,7 @@ export function CartPage() {
         if (cancelled) return;
         const rows = products
           .map((product, index) => mapApiProduct(product, index))
-          .filter((product) => product.img && !cartIds.has(product.id))
+          .filter((product) => product.img && !cartProductIds.has(product.id))
           .slice(0, 4);
         setRecommendations(rows);
       } catch {
@@ -55,7 +55,7 @@ export function CartPage() {
     return () => {
       cancelled = true;
     };
-  }, [cartIds]);
+  }, [cartProductIds]);
 
   return (
     <main className="bg-[radial-gradient(circle_at_top_left,rgba(201,160,96,0.18),transparent_32%),linear-gradient(135deg,#fff8ee_0%,#f7efe3_52%,#fffdf8_100%)] px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
@@ -76,7 +76,7 @@ export function CartPage() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
             <section className="space-y-4">
               {cart.map((line) => (
-                <CartItemCard key={line.id} line={line} onQty={updateCartQty} onRemove={removeFromCart} />
+                <CartItemCard key={line.cartKey} line={line} onQty={updateCartQty} onRemove={removeFromCart} />
               ))}
             </section>
 
@@ -158,14 +158,20 @@ function CartItemCard({
   onRemove,
 }: {
   line: CartLine;
-  onQty: (id: number, qty: number) => void;
-  onRemove: (id: number) => void;
+  onQty: (cartKey: string, qty: number) => void;
+  onRemove: (cartKey: string) => void;
 }) {
-  const selectedVariant = line.colorVariants[0];
+  const variantBadges: string[] = [];
+  if (line.selectedColor) variantBadges.push(line.selectedColor);
+  if (line.selectedSize) variantBadges.push(line.selectedSize);
+  if (line.selectedFabric) variantBadges.push(line.selectedFabric);
+  if (line.isStitched !== undefined && line.selectedFabric) {
+    variantBadges.push(line.isStitched ? "Stitched" : "Unstitched");
+  }
 
   return (
     <article className="grid gap-4 rounded-[1.5rem] border border-[#e1cfc0] bg-white/86 p-4 shadow-lg shadow-[#7d0020]/6 backdrop-blur sm:grid-cols-[112px_minmax(0,1fr)] sm:p-5">
-      <Link to={ROUTES.product(line.id)} className="aspect-[3/4] overflow-hidden rounded-2xl bg-[#f0e4df] sm:w-28">
+      <Link to={ROUTES.product(line.productId)} className="aspect-[3/4] overflow-hidden rounded-2xl bg-[#f0e4df] sm:w-28">
         {line.img ? (
           <img src={line.img} alt={line.name} className="h-full w-full object-cover" />
         ) : (
@@ -176,19 +182,24 @@ function CartItemCard({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-[#9b7a43]">{line.cat}</p>
-            <Link to={ROUTES.product(line.id)} className="mt-1 block text-base font-extrabold leading-snug text-[#1a0808] hover:underline sm:text-lg" style={POPPINS}>
+            <Link to={ROUTES.product(line.productId)} className="mt-1 block text-base font-extrabold leading-snug text-[#1a0808] hover:underline sm:text-lg" style={POPPINS}>
               {line.name}
             </Link>
-            {selectedVariant ? (
-              <div className="mt-3 flex items-center gap-2 text-xs font-bold text-[#72514e]">
-                <span className="h-4 w-4 rounded-full border border-[#d7c5b4]" style={{ background: selectedVariant.colorHex || "#c9a060" }} />
-                <span>{selectedVariant.colorName}</span>
+            {/* Variant details */}
+            {variantBadges.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {variantBadges.map((badge) => (
+                  <span key={badge} className="inline-flex items-center rounded-full border border-[#e1cfc0] bg-[#fff8ee] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#7d4a30]">
+                    {badge}
+                  </span>
+                ))}
               </div>
-            ) : line.colorVariants.length > 0 ? (
-              <p className="mt-3 text-xs font-bold text-[#72514e]">{line.colorVariants.length} color variants available</p>
-            ) : null}
+            )}
+            {line.sku && (
+              <p className="mt-1.5 text-[10px] text-muted-foreground">SKU: <span className="font-mono font-semibold">{line.sku}</span></p>
+            )}
           </div>
-          <button type="button" onClick={() => onRemove(line.id)} className="inline-flex w-fit items-center gap-2 rounded-full border border-[#eadbd4] px-3 py-2 text-xs font-extrabold text-[#7d0020] hover:bg-[#fff2ea]">
+          <button type="button" onClick={() => onRemove(line.cartKey)} className="inline-flex w-fit items-center gap-2 rounded-full border border-[#eadbd4] px-3 py-2 text-xs font-extrabold text-[#7d0020] hover:bg-[#fff2ea]">
             <Trash2 className="h-3.5 w-3.5" />
             Remove
           </button>
@@ -203,11 +214,11 @@ function CartItemCard({
           <div>
             <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#8a6460]">Quantity</p>
             <div className="inline-flex h-10 items-center rounded-full border border-[#e1cfc0] bg-white">
-              <button type="button" onClick={() => onQty(line.id, line.quantity - 1)} className="flex h-10 w-10 items-center justify-center rounded-l-full hover:bg-[#fff2ea]" aria-label="Decrease quantity">
+              <button type="button" onClick={() => onQty(line.cartKey, line.quantity - 1)} className="flex h-10 w-10 items-center justify-center rounded-l-full hover:bg-[#fff2ea]" aria-label="Decrease quantity">
                 <Minus className="h-3.5 w-3.5" />
               </button>
               <span className="w-9 text-center text-sm font-extrabold">{line.quantity}</span>
-              <button type="button" onClick={() => onQty(line.id, line.quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-r-full hover:bg-[#fff2ea]" aria-label="Increase quantity">
+              <button type="button" onClick={() => onQty(line.cartKey, line.quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-r-full hover:bg-[#fff2ea]" aria-label="Increase quantity">
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>

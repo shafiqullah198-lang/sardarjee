@@ -25,3 +25,11 @@ class PaymentTransaction(TimeStampedModel):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     provider_reference = models.CharField(max_length=120, blank=True)
     raw_payload = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["provider"]),
+            models.Index(fields=["order"]),
+        ]

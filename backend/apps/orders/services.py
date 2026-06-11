@@ -5,7 +5,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductColorVariant, ProductVariant
-from apps.inventory.models import InventoryRecord, StockLedgerEntry
+from apps.inventory.models import StockLedgerEntry
+from apps.inventory.services import adjust_variant_stock
 from apps.orders.models import Order
 from apps.payments.models import PaymentTransaction
 
@@ -28,55 +29,44 @@ def _line_variant(line):
     variant_id = line.get("variant_id")
     product_id = line.get("product_id")
     if variant_id:
-        return ProductVariant.objects.select_related("product").select_for_update().get(pk=variant_id)
+        return ProductVariant.objects.select_related("product", "color_variant").select_for_update().get(pk=variant_id)
     product = Product.objects.select_for_update().get(pk=product_id)
-    return product.variants.select_for_update().first() or ProductVariant.objects.create(product=product, sku=f"SKU-{product.id}")
+    fallback_variant = product.variants.select_for_update().first()
+    if fallback_variant:
+        return fallback_variant
+    return ProductVariant.objects.create(
+        product=product,
+        sku=f"SKU-{product.id}",
+        stock=max(0, int(product.stock or 0)),
+        is_active=True,
+    )
 
 
-def _line_color_variant(line, product):
+def _line_color_variant(line, variant):
     color_variant_id = line.get("color_variant_id")
     if color_variant_id:
-        return ProductColorVariant.objects.select_for_update().get(pk=color_variant_id, product=product)
-    return ProductColorVariant.objects.select_for_update().filter(product=product).order_by("id").first()
+        return ProductColorVariant.objects.select_for_update().get(pk=color_variant_id, product=variant.product)
+    if variant.color_variant_id:
+        return variant.color_variant
+    return ProductColorVariant.objects.select_for_update().filter(product=variant.product).order_by("id").first()
 
 
 def _reduce_inventory(order, line, quantity, note):
     variant = line["variant"]
-    product = variant.product
-    color_variant = line.get("color_variant")
-
-    if color_variant:
-        color_variant.stock = max(0, color_variant.stock - quantity)
-        color_variant.save(update_fields=["stock", "updated_at"])
-    else:
-        product.stock = max(0, product.stock - quantity)
-        product.save(update_fields=["stock", "updated_at"])
-
-    record, _ = InventoryRecord.objects.get_or_create(variant=variant)
-    record.quantity = max(0, record.quantity - quantity)
-    record.save(update_fields=["quantity", "updated_at"])
-    StockLedgerEntry.objects.create(variant=variant, movement_type=StockLedgerEntry.MovementType.OUT, quantity=quantity, note=note)
+    adjust_variant_stock(
+        variant,
+        delta=-quantity,
+        movement_type=StockLedgerEntry.MovementType.OUT,
+        note=note,
+    )
 
 
 def _restore_inventory(order, item):
     variant = ProductVariant.objects.select_related("product").select_for_update().get(pk=item.variant_id)
-    product = variant.product
-
-    if item.color_variant_id:
-        color_variant = ProductColorVariant.objects.select_for_update().get(pk=item.color_variant_id)
-        color_variant.stock += item.quantity
-        color_variant.save(update_fields=["stock", "updated_at"])
-    else:
-        product.stock += item.quantity
-        product.save(update_fields=["stock", "updated_at"])
-
-    record, _ = InventoryRecord.objects.get_or_create(variant=variant)
-    record.quantity += item.quantity
-    record.save(update_fields=["quantity", "updated_at"])
-    StockLedgerEntry.objects.create(
-        variant=variant,
+    adjust_variant_stock(
+        variant,
+        delta=item.quantity,
         movement_type=StockLedgerEntry.MovementType.IN,
-        quantity=item.quantity,
         note=f"Refund/restock {order.number}",
     )
 
@@ -109,10 +99,23 @@ def complete_sale(
     for raw_line in items:
         variant = _line_variant(raw_line)
         product = variant.product
-        color_variant = _line_color_variant(raw_line, product)
+        color_variant = _line_color_variant(raw_line, variant)
         quantity = int(raw_line.get("quantity", 1))
         if quantity <= 0:
             raise ValueError("Item quantity must be greater than zero.")
+        available_stock = max(0, int(variant.stock or 0))
+        if (
+            available_stock <= 0
+            and color_variant is not None
+            and not variant.size
+            and not variant.fabric
+        ):
+            available_stock = max(available_stock, int(color_variant.stock or 0))
+            if available_stock and variant.stock != available_stock:
+                variant.stock = available_stock
+                variant.save(update_fields=["stock", "updated_at"])
+        if quantity > available_stock:
+            raise ValueError(f"Only {available_stock} unit(s) available for {variant.sku}.")
         unit_price = _decimal(raw_line.get("unit_price"), variant.price)
         line_subtotal = unit_price * quantity
         discount = min(max(_decimal(raw_line.get("discount")), Decimal("0")), line_subtotal)
@@ -124,6 +127,7 @@ def complete_sale(
             "color_variant": color_variant,
             "quantity": quantity,
             "unit_price": unit_price,
+            "unit_cost": _decimal(raw_line.get("unit_cost"), getattr(variant, "cost_price", product.cost_price)),
             "line_total": line_total,
         })
 
@@ -148,17 +152,38 @@ def complete_sale(
 
     for line in prepared:
         variant = line["variant"]
+        color_variant = line.get("color_variant")
+
+        # Build a snapshot image URL from color variant gallery or legacy image
+        variant_image_url = ""
+        if color_variant:
+            cv_img = color_variant.images.order_by("sort_order", "id").first()
+            if cv_img and cv_img.image:
+                variant_image_url = cv_img.thumbnail.url if cv_img.thumbnail else cv_img.image.url
+            elif color_variant.image:
+                variant_image_url = color_variant.image.url
+        if not variant_image_url:
+            prod_img = variant.product.images.order_by("sort_order", "id").first()
+            if prod_img and prod_img.image:
+                variant_image_url = prod_img.thumbnail.url if prod_img.thumbnail else prod_img.image.url
+
         order.items.create(
             variant=variant,
-            color_variant=line.get("color_variant"),
+            color_variant=color_variant,
             product_name=variant.product.name,
             sku=variant.sku,
             unit_price=line["unit_price"],
+            unit_cost=line["unit_cost"],
             quantity=line["quantity"],
             line_total=line["line_total"],
+            # Snapshots
+            variant_color=variant.color or (color_variant.color_name if color_variant else ""),
+            variant_size=variant.size,
+            variant_fabric=variant.fabric,
+            variant_is_stitched=variant.is_stitched,
+            variant_image_url=variant_image_url,
         )
         _reduce_inventory(order, line, line["quantity"], f"{source.upper()} sale {order.number}")
-
     order.status_events.create(to_status=order.status, note=f"{source.upper()} sale completed")
     PaymentTransaction.objects.create(
         order=order,

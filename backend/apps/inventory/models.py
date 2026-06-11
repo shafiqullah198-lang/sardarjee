@@ -9,6 +9,11 @@ class InventoryRecord(TimeStampedModel):
     quantity = models.IntegerField(default=0)
     low_stock_threshold = models.PositiveIntegerField(default=5)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+        ]
+
     @property
     def is_low_stock(self):
         return self.quantity <= self.low_stock_threshold
@@ -24,3 +29,10 @@ class StockLedgerEntry(TimeStampedModel):
     movement_type = models.CharField(max_length=16, choices=MovementType.choices)
     quantity = models.IntegerField()
     note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["movement_type"]),
+            models.Index(fields=["variant"]),
+        ]

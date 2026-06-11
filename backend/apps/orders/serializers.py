@@ -4,12 +4,26 @@ from apps.orders.models import Order, OrderItem, OrderStatusEvent
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    color_variant_id = serializers.IntegerField(source="color_variant.id", read_only=True)
-    color_variant_name = serializers.CharField(source="color_variant.color_name", read_only=True)
+    color_variant_id = serializers.IntegerField(source="color_variant.id", read_only=True, allow_null=True)
+    color_variant_name = serializers.CharField(source="color_variant.color_name", read_only=True, allow_null=True)
 
     class Meta:
         model = OrderItem
-        fields = ("sku", "product_name", "color_variant_id", "color_variant_name", "unit_price", "quantity", "line_total")
+        fields = (
+            "sku",
+            "product_name",
+            "color_variant_id",
+            "color_variant_name",
+            "unit_price",
+            "unit_cost",
+            "quantity",
+            "line_total",
+            "variant_color",
+            "variant_size",
+            "variant_fabric",
+            "variant_is_stitched",
+            "variant_image_url",
+        )
 
 
 class OrderStatusEventSerializer(serializers.ModelSerializer):
@@ -66,11 +80,13 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.payment_screenshot.url
 
     def get_payment_status(self, obj):
-        payment = obj.payments.order_by("-created_at").first()
+        payments = getattr(obj, "prefetched_payments", None)
+        payment = payments[0] if payments else obj.payments.order_by("-created_at").first()
         return payment.status if payment else "pending"
 
     def get_payment_method(self, obj):
-        payment = obj.payments.order_by("-created_at").first()
+        payments = getattr(obj, "prefetched_payments", None)
+        payment = payments[0] if payments else obj.payments.order_by("-created_at").first()
         return payment.provider if payment else "unknown"
 
     def get_customer(self, obj):

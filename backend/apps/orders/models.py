@@ -45,6 +45,14 @@ class Order(TimeStampedModel):
     refunded_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     refund_reason = models.CharField(max_length=255, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["source"]),
+            models.Index(fields=["user"]),
+        ]
+
     def save(self, *args, **kwargs):
         if not self.tracking_id:
             date_part = timezone.localdate().strftime("%Y%m%d")
@@ -67,8 +75,22 @@ class OrderItem(TimeStampedModel):
     product_name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     quantity = models.PositiveIntegerField()
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
+    # Snapshots — preserved even if variants are later edited/deleted
+    variant_color = models.CharField(max_length=80, blank=True)
+    variant_size = models.CharField(max_length=20, blank=True)
+    variant_fabric = models.CharField(max_length=80, blank=True)
+    variant_is_stitched = models.BooleanField(null=True, blank=True)
+    variant_image_url = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["variant"]),
+            models.Index(fields=["color_variant"]),
+        ]
 
 
 class OrderStatusEvent(TimeStampedModel):
@@ -76,6 +98,13 @@ class OrderStatusEvent(TimeStampedModel):
     from_status = models.CharField(max_length=16, blank=True)
     to_status = models.CharField(max_length=16)
     note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["to_status"]),
+        ]
 
 
 class ReturnRequest(TimeStampedModel):

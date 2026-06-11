@@ -72,14 +72,26 @@ def calculate_live_stats():
     average_rating = approved_reviews.aggregate(avg=Avg("rating"))["avg"] or 0
     customer_users = get_user_model().objects.filter(orders__isnull=False).distinct().count()
     customer_phones = Order.objects.exclude(shipping_phone="").values("shipping_phone").distinct().count()
+    prod_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True)
+    if hasattr(Product, "deleted_at"):
+        prod_qs = prod_qs.filter(deleted_at__isnull=True)
+        
+    low_stock_qs = InventoryRecord.objects.filter(
+        quantity__lte=F("low_stock_threshold"), 
+        variant__product__is_active=True, 
+        variant__product__archived_at__isnull=True
+    )
+    if hasattr(Product, "deleted_at"):
+        low_stock_qs = low_stock_qs.filter(variant__product__deleted_at__isnull=True)
+
     return {
-        HomepageStat.StatType.TOTAL_PRODUCTS: Product.objects.filter(status=Product.Status.ACTIVE).count(),
+        HomepageStat.StatType.TOTAL_PRODUCTS: prod_qs.count(),
         HomepageStat.StatType.TOTAL_ORDERS: Order.objects.count(),
         HomepageStat.StatType.TOTAL_SALES: _format_money(total_sales),
         HomepageStat.StatType.TOTAL_CUSTOMERS: max(customer_users, customer_phones),
         HomepageStat.StatType.TOTAL_REVIEWS: approved_reviews.count(),
         HomepageStat.StatType.AVERAGE_RATING: f"{average_rating:.1f}",
-        HomepageStat.StatType.LOW_STOCK: InventoryRecord.objects.filter(quantity__lte=F("low_stock_threshold")).count(),
+        HomepageStat.StatType.LOW_STOCK: low_stock_qs.count(),
     }
 
 
@@ -98,9 +110,13 @@ def calculate_homepage_summary_stats():
         or 0
     )
 
+    premium_fabrics_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True)
+    if hasattr(Product, "deleted_at"):
+        premium_fabrics_qs = premium_fabrics_qs.filter(deleted_at__isnull=True)
+
     return {
         "years_of_trust": max(0, current_year - BUSINESS_START_YEAR),
-        "premium_fabrics": Product.objects.filter(status=Product.Status.ACTIVE).count(),
+        "premium_fabrics": premium_fabrics_qs.count(),
         "happy_customers": max(customer_users, customer_phones),
         "average_rating": round(float(average_rating), 1),
     }
@@ -180,8 +196,15 @@ class HomeContentView(APIView):
             .select_related("user", "product")
             .order_by("-is_featured", "-created_at")[:6]
         )
-        featured_products = Product.objects.filter(status=Product.Status.ACTIVE, is_featured=True).prefetch_related("color_variants", "images")[:8]
-        lookbook_products = Product.objects.filter(status=Product.Status.ACTIVE).prefetch_related("color_variants", "images").order_by("-created_at")[: display.lookbook_limit]
+        featured_products_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True, is_featured=True)
+        if hasattr(Product, "deleted_at"):
+            featured_products_qs = featured_products_qs.filter(deleted_at__isnull=True)
+        featured_products = featured_products_qs.prefetch_related("color_variants", "images")[:8]
+
+        lookbook_products_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True)
+        if hasattr(Product, "deleted_at"):
+            lookbook_products_qs = lookbook_products_qs.filter(deleted_at__isnull=True)
+        lookbook_products = lookbook_products_qs.prefetch_related("color_variants", "images").order_by("-created_at")[: display.lookbook_limit]
         categories = Category.objects.filter(is_active=True, parent__isnull=True)[:10]
         return Response(
             {

@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useState } from "react";
+import { Component, Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, FormEvent, ReactNode } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast, Toaster } from "sonner";
@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Download,
   Eye,
@@ -52,7 +53,7 @@ import {
   fetchSaleInvoice,
   fetchSales,
   refundSale,
-  moveStock,
+  updateInventoryStock,
   saveAdminProduct,
   saveAdminCareer,
   saveHomepageDisplay,
@@ -183,7 +184,7 @@ export function AdminPage() {
   const [homepage, setHomepage] = useState<AdminHomepage | null>(null);
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [orders, setOrders] = useState<ApiTrackedOrder[]>([]);
-  const [inventory, setInventory] = useState<InventoryRow[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [history, setHistory] = useState<InventoryMove[]>([]);
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [reviews, setReviews] = useState<ApiReview[]>([]);
@@ -201,6 +202,8 @@ export function AdminPage() {
   const [error, setError] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [topbarHeight, setTopbarHeight] = useState(120);
+  const [loadedTabs, setLoadedTabs] = useState<Partial<Record<AdminTab, boolean>>>({});
 
   async function checkSession() {
     setCheckingAuth(true);
@@ -213,64 +216,111 @@ export function AdminPage() {
     }
   }
 
-  async function loadAdminData() {
+  function markTabLoaded(tabKey: AdminTab) {
+    setLoadedTabs((current) => current[tabKey] ? current : { ...current, [tabKey]: true });
+  }
+
+  async function loadDashboardData(showLoader = true) {
     if (!session?.authenticated) return;
-    setLoading(true);
+    if (showLoader) setLoading(true);
     setError("");
     try {
-      const [dashboardData, productRows, orderRows, inventoryData, saleRows, eventRows, reviewRows, careerRows] = await Promise.allSettled([
-        fetchAdminDashboard(),
-        fetchAdminProducts({ page: 1, page_size: 50 }),
-        fetchAdminOrders({ page: 1, page_size: 50 }),
-        fetchInventory(),
-        fetchSales({ page: 1, page_size: 50 }),
-        fetchOrderEvents({ page: 1, page_size: 50 }),
-        fetchAdminReviews({ page: 1, page_size: 50 }),
-        fetchAdminCareers({ page: 1, page_size: 50 }),
-      ]);
-      const failures = [dashboardData, productRows, orderRows, inventoryData, saleRows, eventRows, reviewRows, careerRows].filter((result) => result.status === "rejected");
-      if (dashboardData.status === "fulfilled") setDashboard(dashboardData.value);
-      if (productRows.status === "fulfilled") {
-        setProducts(productRows.value.results);
-        setProductMeta(productRows.value);
+      setDashboard(await fetchAdminDashboard());
+      markTabLoaded("dashboard");
+    } catch (loadError) {
+      const message = getErrorMessage(loadError);
+      setError(message);
+      notify("error", message);
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  }
+
+  async function loadTabData(nextTab: AdminTab, force = false) {
+    if (!session?.authenticated) return;
+    if (!force && loadedTabs[nextTab]) return;
+
+    const showLoader = !loadedTabs[nextTab];
+    if (showLoader) setLoading(true);
+
+    try {
+      if (nextTab === "dashboard") {
+        await loadDashboardData(true);
+        return;
       }
-      if (orderRows.status === "fulfilled") {
-        setOrders(orderRows.value.results);
-        setOrderMeta(orderRows.value);
+
+      if (nextTab === "pos") {
+        const rows = await fetchAdminProducts({ page: 1, page_size: 20 });
+        setProducts(rows.results);
+        setProductMeta(rows);
+        markTabLoaded("pos");
+        markTabLoaded("products");
+        return;
       }
-      if (inventoryData.status === "fulfilled") {
-        setInventory(inventoryData.value.records);
-        setInventoryMeta({ count: inventoryData.value.records_count, page: inventoryData.value.records_page, page_size: inventoryData.value.records_page_size, total_pages: inventoryData.value.records_total_pages });
-        setHistory(inventoryData.value.history);
-        setHistoryMeta({ count: inventoryData.value.history_count, page: inventoryData.value.history_page, page_size: inventoryData.value.history_page_size, total_pages: inventoryData.value.history_total_pages });
+
+      if (nextTab === "override") {
+        const [orderRows, eventRows] = await Promise.all([
+          fetchAdminOrders({ page: 1, page_size: 20 }),
+          fetchOrderEvents({ page: 1, page_size: 20 }),
+        ]);
+        setOrders(orderRows.results);
+        setOrderMeta(orderRows);
+        setOrderEvents(eventRows.results);
+        setEventMeta(eventRows);
+        markTabLoaded("override");
+        markTabLoaded("orders");
+        return;
       }
-      if (saleRows.status === "fulfilled") {
-        setSales(saleRows.value.results);
-        setSalesMeta(saleRows.value);
+
+      if (nextTab === "products") {
+        const rows = await fetchAdminProducts({ page: 1, page_size: 20 });
+        setProducts(rows.results);
+        setProductMeta(rows);
+        markTabLoaded("products");
+        return;
       }
-      if (eventRows.status === "fulfilled") {
-        setOrderEvents(eventRows.value.results);
-        setEventMeta(eventRows.value);
+      if (nextTab === "inventory") {
+        const rows = await fetchInventory({ page: 1, page_size: 20, records_page: 1 });
+        setInventory(rows.records);
+        setInventoryMeta({ count: rows.records_count, page: rows.records_page, page_size: rows.records_page_size, total_pages: rows.records_total_pages });
+        setHistory(rows.history);
+        setHistoryMeta({ count: rows.history_count, page: rows.history_page, page_size: rows.history_page_size, total_pages: rows.history_total_pages });
+        markTabLoaded("inventory");
+        return;
       }
-      if (reviewRows.status === "fulfilled") {
-        setReviews(reviewRows.value.results);
-        setReviewMeta(reviewRows.value);
+      if (nextTab === "orders") {
+        const rows = await fetchAdminOrders({ page: 1, page_size: 20 });
+        setOrders(rows.results);
+        setOrderMeta(rows);
+        markTabLoaded("orders");
+        return;
       }
-      if (careerRows.status === "fulfilled") {
-        setCareers(careerRows.value.results);
-        setCareerMeta(careerRows.value);
+      if (nextTab === "sales") {
+        const rows = await fetchSales({ page: 1, page_size: 20 });
+        setSales(rows.results);
+        setSalesMeta(rows);
+        markTabLoaded("sales");
+        return;
       }
-      if (failures.length) {
-        const message = getErrorMessage(failures[0].reason);
-        setError(message);
-        notify("error", message);
+      if (nextTab === "reviews") {
+        const rows = await fetchAdminReviews({ page: 1, page_size: 20 });
+        setReviews(rows.results);
+        setReviewMeta(rows);
+        markTabLoaded("reviews");
+        return;
+      }
+      if (nextTab === "careers") {
+        const rows = await fetchAdminCareers({ page: 1, page_size: 20 });
+        setCareers(rows.results);
+        setCareerMeta(rows);
+        markTabLoaded("careers");
       }
     } catch (loadError) {
       const message = getErrorMessage(loadError);
       setError(message);
       notify("error", message);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }
 
@@ -279,8 +329,16 @@ export function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (session?.authenticated) void loadAdminData();
+    if (session?.authenticated) {
+      void loadDashboardData(true);
+    }
   }, [session?.authenticated]);
+
+  useEffect(() => {
+    if (session?.authenticated && tab !== "dashboard") {
+      void loadTabData(tab);
+    }
+  }, [session?.authenticated, tab]);
 
   async function handleLogout() {
     try {
@@ -296,10 +354,14 @@ export function AdminPage() {
       setHistory([]);
       setSales([]);
       setCareers([]);
+      setReviews([]);
+      setOrderEvents([]);
+      setLoadedTabs({});
+      setLoading(false);
     }
   }
 
-  const activeTab = adminTabs.find((item) => item.id === tab) ?? adminTabs[0];
+  const activeTab = useMemo(() => adminTabs.find((item) => item.id === tab) ?? adminTabs[0], [tab]);
 
   if (checkingAuth) {
     return (
@@ -335,13 +397,14 @@ export function AdminPage() {
         subtitle="Premium fabric operations, orders, inventory, and POS in one place."
         userEmail={session.user?.email ?? "Staff user"}
         collapsed={sidebarCollapsed}
+        onHeightChange={setTopbarHeight}
         onMenu={() => setMobileOpen(true)}
-        onRefresh={loadAdminData}
+        onRefresh={() => loadTabData(tab, true)}
         tab={tab}
         setTab={setTab}
       />
       <section className={`min-h-screen min-w-0 transition-[padding] duration-300 ease-out ${sidebarWidth}`}>
-        <div className="mx-auto w-full max-w-[1680px] px-4 pb-8 pt-[96px] sm:px-6 lg:px-6">
+        <div className="mx-auto w-full max-w-[1680px] px-4 pb-8 sm:px-6 lg:px-6" style={{ paddingTop: topbarHeight + 24 }}>
           {error && <AlertBanner message={error} />}
           {loading ? (
             <AdminSkeleton />
@@ -349,14 +412,14 @@ export function AdminPage() {
             <AdminContentErrorBoundary>
               <div className="space-y-6">
                 {tab === "dashboard" && <Dashboard dashboard={dashboard} />}
-                {tab === "products" && <Products products={products} meta={productMeta} setProducts={setProducts} setMeta={setProductMeta} reload={loadAdminData} />}
-                {tab === "inventory" && <Inventory records={inventory} recordMeta={inventoryMeta} setRecords={setInventory} setRecordMeta={setInventoryMeta} history={history} historyMeta={historyMeta} setHistory={setHistory} setHistoryMeta={setHistoryMeta} reload={loadAdminData} />}
-                {tab === "pos" && <Pos products={products} reload={loadAdminData} />}
-                {tab === "orders" && <Orders orders={orders} meta={orderMeta} setOrders={setOrders} setMeta={setOrderMeta} reload={loadAdminData} />}
-                {tab === "override" && <Override orders={orders} events={orderEvents} eventMeta={eventMeta} setEvents={setOrderEvents} setEventMeta={setEventMeta} reload={loadAdminData} />}
-                {tab === "sales" && <Sales sales={sales} meta={salesMeta} setSales={setSales} setMeta={setSalesMeta} reload={loadAdminData} />}
-                {tab === "reviews" && <Reviews reviews={reviews} meta={reviewMeta} setReviews={setReviews} setMeta={setReviewMeta} reload={loadAdminData} />}
-                {tab === "careers" && <CareersAdmin careers={careers} meta={careerMeta} setCareers={setCareers} setMeta={setCareerMeta} reload={loadAdminData} />}
+                {tab === "products" && <Products products={products} meta={productMeta} setProducts={setProducts} setMeta={setProductMeta} reload={() => loadTabData("products", true)} />}
+                {tab === "inventory" && <Inventory records={inventory} recordMeta={inventoryMeta} setRecords={setInventory} setRecordMeta={setInventoryMeta} history={history} historyMeta={historyMeta} setHistory={setHistory} setHistoryMeta={setHistoryMeta} reload={() => loadTabData("inventory", true)} />}
+                {tab === "pos" && <Pos products={products} reload={() => loadTabData("pos", true)} />}
+                {tab === "orders" && <Orders orders={orders} meta={orderMeta} setOrders={setOrders} setMeta={setOrderMeta} reload={() => loadTabData("orders", true)} />}
+                {tab === "override" && <Override orders={orders} events={orderEvents} eventMeta={eventMeta} setEvents={setOrderEvents} setEventMeta={setEventMeta} reload={() => loadTabData("override", true)} />}
+                {tab === "sales" && <Sales sales={sales} meta={salesMeta} setSales={setSales} setMeta={setSalesMeta} reload={() => loadTabData("sales", true)} />}
+                {tab === "reviews" && <Reviews reviews={reviews} meta={reviewMeta} setReviews={setReviews} setMeta={setReviewMeta} reload={() => loadTabData("reviews", true)} />}
+                {tab === "careers" && <CareersAdmin careers={careers} meta={careerMeta} setCareers={setCareers} setMeta={setCareerMeta} reload={() => loadTabData("careers", true)} />}
               </div>
             </AdminContentErrorBoundary>
           )}
@@ -366,15 +429,15 @@ export function AdminPage() {
   );
 }
 
-function AdminBackground({ children }: { children: ReactNode }) {
+const AdminBackground = memo(function AdminBackground({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(201,160,96,0.16),transparent_30%),linear-gradient(135deg,#f8f4ec_0%,#f2e9dc_46%,#fffdf8_100%)]">
       {children}
     </main>
   );
-}
+});
 
-function AdminSidebar({
+const AdminSidebar = memo(function AdminSidebar({
   active,
   mobileOpen,
   collapsed,
@@ -436,15 +499,16 @@ function AdminSidebar({
       </aside>
     </>
   );
-}
+});
 
-function AdminTopbar({
+const AdminTopbar = memo(function AdminTopbar({
   title,
   subtitle,
   userEmail,
   collapsed,
   tab,
   setTab,
+  onHeightChange,
   onMenu,
   onRefresh,
 }: {
@@ -454,10 +518,29 @@ function AdminTopbar({
   collapsed: boolean;
   tab: AdminTab;
   setTab: (tab: AdminTab) => void;
+  onHeightChange: (height: number) => void;
   onMenu: () => void;
   onRefresh: () => void;
 }) {
   const [quickSearch, setQuickSearch] = useState("");
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const node = headerRef.current;
+    if (!node) return;
+
+    const syncHeight = () => onHeightChange(Math.ceil(node.getBoundingClientRect().height));
+    syncHeight();
+
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(node);
+    window.addEventListener("resize", syncHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncHeight);
+    };
+  }, [collapsed, onHeightChange, tab, title, subtitle, userEmail]);
 
   function handleQuickSearch(value: string) {
     setQuickSearch(value);
@@ -467,7 +550,7 @@ function AdminTopbar({
   }
 
   return (
-    <header className={`fixed left-0 right-0 top-0 z-30 border-b border-black/5 bg-[#fffaf1]/85 px-4 py-3 shadow-sm backdrop-blur-2xl transition-[left] duration-300 ease-out sm:px-6 lg:left-[17rem] ${collapsed ? "lg:left-[5.5rem]" : ""}`}>
+    <header ref={headerRef} className={`fixed left-0 right-0 top-0 z-30 border-b border-black/5 bg-[#fffaf1]/85 px-4 py-3 shadow-sm backdrop-blur-2xl transition-[left] duration-300 ease-out sm:px-6 lg:left-[17rem] ${collapsed ? "lg:left-[5.5rem]" : ""}`}>
       <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <button onClick={onMenu} className="rounded-2xl border border-border bg-background p-3 lg:hidden"><Menu className="h-4 w-4" /></button>
@@ -493,7 +576,7 @@ function AdminTopbar({
       </div>
     </header>
   );
-}
+});
 
 function QuickAction({ label, icon: Icon, active, onClick }: { label: string; icon: ComponentType<{ className?: string }>; active?: boolean; onClick: () => void }) {
   return (
@@ -505,7 +588,7 @@ function QuickAction({ label, icon: Icon, active, onClick }: { label: string; ic
 
 function Panel({ children, title, action, className = "" }: { children: ReactNode; title: string; action?: ReactNode; className?: string }) {
   return (
-    <section className={`${CARD_GLASS} rounded-3xl p-4 shadow-sm ${className}`}>
+    <section className={`${CARD_GLASS} relative h-full min-h-0 overflow-visible rounded-3xl p-4 shadow-sm sm:p-5 ${className}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-extrabold sm:text-lg" style={POPPINS}>{title}</h2>
         {action}
@@ -561,11 +644,25 @@ function Modal({ title, children, onClose, wide = false }: { title: string; chil
   );
 }
 
-function ConfirmModal({ title, message, confirmLabel, onCancel, onConfirm }: { title: string; message: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
+function ConfirmModal({
+  title,
+  message,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+  icon: Icon = ShieldAlert,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  icon?: ComponentType<{ className?: string }>;
+}) {
   return (
     <Modal title={title} onClose={onCancel}>
       <div className="rounded-3xl border border-rose-100 bg-rose-50 p-4 text-rose-700">
-        <ShieldAlert className="mb-3 h-6 w-6" />
+        <Icon className="mb-3 h-6 w-6" />
         <p className="text-sm">{message}</p>
       </div>
       <div className="mt-5 flex justify-end gap-3">
@@ -714,20 +811,22 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
   const kpis = [
     { label: "Total Sales", value: money(view.total_sales), icon: BadgeDollarSign, trend: "Paid + delivered", tone: "dark" },
     { label: "POS Sales", value: money(view.pos_sales), icon: Receipt, trend: "Store revenue", tone: "gold" },
+    { label: "Total Profit", value: money(view.total_profit), icon: Sparkles, trend: "Revenue minus buy price", tone: "light" },
+    { label: "POS Profit", value: money(view.pos_profit), icon: ShoppingCart, trend: "Store profit", tone: "light" },
     { label: "Orders", value: view.total_orders, icon: ClipboardList, trend: "Online + POS", tone: "light" },
     { label: "Products", value: view.total_products, icon: PackagePlus, trend: "Active catalog", tone: "light" },
-    { label: "Customers", value: view.customers, icon: UserCircle, trend: "Unique buyers", tone: "light" },
+    { label: "Customers", value: view.customers_count, icon: UserCircle, trend: "Unique buyers", tone: "light" },
     { label: "Reviews", value: view.approved_reviews, icon: Star, trend: `${view.average_rating.toFixed(1)} avg rating`, tone: "light" },
-    { label: "Low Stock", value: view.low_stock, icon: AlertTriangle, trend: "Needs attention", tone: "danger" },
+    { label: "Low Stock", value: view.low_stock_count, icon: AlertTriangle, trend: "Needs attention", tone: "danger" },
   ];
-  const chartTotal = view.sales_chart.reduce((sum, row) => sum + row.total, 0);
+  const chartTotal = view.sales_chart_data.reduce((sum, row) => sum + row.total, 0);
   const lastOrder = view.recent_orders[0];
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+    <div className="space-y-6 lg:space-y-7">
+      <div className="grid gap-4 md:gap-5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
         {kpis.map(({ label, value, icon: Icon, trend, tone }) => (
-          <div key={label} className={`rounded-3xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl ${tone === "dark" ? "border-[#2a0b12] bg-[#13070b] text-white" : tone === "danger" ? "border-rose-100 bg-rose-50" : tone === "gold" ? "border-[#ead8b4] bg-[#fff7e8]" : "border-white/70 bg-white/75 backdrop-blur-xl"}`}>
+          <div key={label} className={`flex min-h-[132px] flex-col justify-between rounded-3xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl ${tone === "dark" ? "border-[#2a0b12] bg-[#13070b] text-white" : tone === "danger" ? "border-rose-100 bg-rose-50" : tone === "gold" ? "border-[#ead8b4] bg-[#fff7e8]" : "border-white/70 bg-white/75 backdrop-blur-xl"}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${tone === "dark" ? "text-white/50" : "text-muted-foreground"}`}>{label}</p>
@@ -740,7 +839,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)] 2xl:gap-6">
         <Panel
           title="Sales Analytics"
           action={(
@@ -761,10 +860,10 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: CRIMSON }} /> Sales revenue
             <span className="ml-3 h-2.5 w-2.5 rounded-full" style={{ background: GOLD }} /> Active points
           </div>
-          {view.sales_chart.length ? (
-            <div className="h-72">
+          {view.sales_chart_data.length ? (
+            <div className="h-[18rem] sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={view.sales_chart} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                <AreaChart data={view.sales_chart_data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor={CRIMSON} stopOpacity={0.32} />
@@ -797,7 +896,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
         </Panel>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)] 2xl:gap-6">
         <Panel title="Recent Orders" action={<Badge tone="neutral">{view.recent_orders.length} latest</Badge>}><OrdersTable orders={view.recent_orders} compact /></Panel>
         <Panel title="Low Stock Alerts">
           {view.low_stock_products.length ? (
@@ -863,11 +962,15 @@ function Products({
   async function deleteProduct() {
     if (!selected) return;
     try {
-      await deleteAdminProduct(selected.id);
-      notify("success", "Product deleted.");
+      const res = await deleteAdminProduct(selected.id);
+      if (res && res.archived) {
+        notify("success", "Product archived successfully.");
+      } else {
+        notify("success", "Product deleted successfully.");
+      }
+      setProducts(products.filter((p) => p.id !== selected.id));
       setModal(null);
       setSelected(null);
-      await reload();
     } catch (error) {
       notify("error", getErrorMessage(error));
     }
@@ -891,8 +994,10 @@ function Products({
             <select value={ordering} onChange={(event) => setOrdering(event.target.value)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold">
               <option value="-created_at">Newest</option>
               <option value="name">Name A-Z</option>
-              <option value="base_price">Price low</option>
-              <option value="-base_price">Price high</option>
+              <option value="base_price">Sale price low</option>
+              <option value="-base_price">Sale price high</option>
+              <option value="cost_price">Buy price low</option>
+              <option value="-cost_price">Buy price high</option>
             </select>
             <button onClick={() => { setSelected(null); setModal("product"); }} className="rounded-full px-5 py-2 text-sm font-bold text-white" style={{ background: CRIMSON }}><Plus className="mr-2 inline h-4 w-4" />Add Product</button>
           </>
@@ -901,8 +1006,8 @@ function Products({
       <Panel title="Catalog" action={<Badge tone="gold">{meta.count} records</Badge>}>
         {products.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] text-sm">
-              <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>Category</th><th>SKU</th><th>Price</th><th>Sale</th><th>Discount</th><th>Sale Preview</th><th>Placement</th><th>Stock</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
+            <table className="w-full min-w-[1320px] text-sm">
+              <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>Category</th><th>SKU</th><th>Buy Price</th><th>Sale Price</th><th>Sale</th><th>Discount</th><th>Final Price</th><th>Placement</th><th>Stock</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
               <tbody>{products.map((product) => (
                 <tr key={product.id} className="border-t border-border">
                   <td className="py-4">
@@ -913,10 +1018,11 @@ function Products({
                   </td>
                   <td>{product.category?.name || "General"}</td>
                   <td>{productSku(product)}</td>
-                  <td className="font-bold">{money(product.base_price)}</td>
+                  <td className="font-bold">{money(product.cost_price)}</td>
+                  <td className="font-bold">{money(product.selling_price || product.base_price)}</td>
                   <td><Badge tone={product.has_discount ? "danger" : "success"}>{product.has_discount ? "On Sale" : "Regular"}</Badge></td>
                   <td>{product.has_discount ? percent(product.discount_percent) : "-"}</td>
-                  <td className="font-bold">{product.has_discount ? money(product.sale_price) : "-"}</td>
+                  <td className="font-bold">{money(product.effective_price)}</td>
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {product.show_in_men && <Badge tone="neutral">Men</Badge>}
@@ -939,7 +1045,7 @@ function Products({
         <PaginationControls meta={meta} onPage={(page) => loadProducts(page)} onPageSize={(pageSize) => loadProducts(1, pageSize)} />
       </Panel>
       {modal === "product" && <ProductModal product={selected} onClose={() => setModal(null)} onSaved={reload} />}
-      {modal === "deleteProduct" && <ConfirmModal title="Delete product?" message={`This will remove ${selected?.name ?? "this product"} from the catalog. This cannot be undone.`} confirmLabel="Delete Product" onCancel={() => setModal(null)} onConfirm={deleteProduct} />}
+      {modal === "deleteProduct" && <ConfirmModal title="Delete product?" message="This product has order history, so it will be archived instead of permanently deleted." confirmLabel="Delete Product" onCancel={() => setModal(null)} onConfirm={deleteProduct} />}
     </div>
   );
 }
@@ -947,7 +1053,8 @@ function Products({
 function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | null; onClose: () => void; onSaved: () => Promise<void> }) {
   const [preview, setPreview] = useState(firstImage(product));
   const [colorRows, setColorRows] = useState<ColorVariantFormRow[]>(() => toColorRows(product?.color_variants));
-  const [basePrice, setBasePrice] = useState(product?.base_price ?? "0");
+  const [costPrice, setCostPrice] = useState(product?.cost_price ?? "0");
+  const [sellingPrice, setSellingPrice] = useState(product?.selling_price ?? product?.base_price ?? "0");
   const [isOnSale, setIsOnSale] = useState(Boolean(product?.is_on_sale));
   const [discountPercent, setDiscountPercent] = useState(product?.discount_percent ?? "0");
   const [saving, setSaving] = useState(false);
@@ -982,16 +1089,14 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
     try {
       const form = new FormData(event.currentTarget);
       const discount = Number(discountPercent || 0);
-      if (isOnSale && discount <= 0) {
-        notify("error", "Discount percent is required when On Sale is checked.");
-        return;
-      }
       if (discount < 0 || discount > 100) {
         notify("error", "Discount percent must be between 0 and 100.");
         return;
       }
       form.set("is_on_sale", isOnSale ? "true" : "false");
       form.set("discount_percent", isOnSale ? String(discount) : "0");
+      form.set("cost_price", String(costPrice || "0"));
+      form.set("selling_price", String(sellingPrice || "0"));
       form.set("color_variants", JSON.stringify(colorRows.map((row) => ({
         id: row.id,
         color_name: row.color_name,
@@ -1027,7 +1132,8 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
           <div className="grid gap-3 sm:grid-cols-2">
             <input name="category" defaultValue={product?.category?.name ?? "General"} required placeholder="Category" className="rounded-2xl border border-border bg-background p-3" />
             <input name="sku" defaultValue={product ? productSku(product) : ""} placeholder="SKU" className="rounded-2xl border border-border bg-background p-3" />
-            <input name="base_price" value={basePrice} onChange={(event) => setBasePrice(event.target.value)} required type="number" min="0" step="0.01" placeholder="Price" className="rounded-2xl border border-border bg-background p-3" />
+            <input name="cost_price" value={costPrice} onChange={(event) => setCostPrice(event.target.value)} required type="number" min="0" step="0.01" placeholder="Buy Price" className="rounded-2xl border border-border bg-background p-3" />
+            <input name="selling_price" value={sellingPrice} onChange={(event) => setSellingPrice(event.target.value)} required type="number" min="0" step="0.01" placeholder="Sale Price" className="rounded-2xl border border-border bg-background p-3" />
             {hasColorRows ? (
               <input name="stock" value={variantStock} readOnly type="number" min="0" placeholder="Stock" className="cursor-not-allowed rounded-2xl border border-border bg-muted p-3 text-muted-foreground" />
             ) : (
@@ -1058,7 +1164,6 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
                   value={discountPercent}
                   onChange={(event) => setDiscountPercent(event.target.value)}
                   disabled={!isOnSale}
-                  required={isOnSale}
                   type="number"
                   min="0"
                   max="100"
@@ -1068,12 +1173,13 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
                 />
               </label>
               <div className="rounded-2xl border border-border bg-background p-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sale Preview</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Final Price</p>
                 <p className="mt-1 text-sm font-extrabold">
                   {isOnSale && Number(discountPercent) > 0
-                    ? money(Number(basePrice || 0) - (Number(basePrice || 0) * Number(discountPercent || 0) / 100))
-                    : "Not on sale"}
+                    ? money(Number(sellingPrice || 0) - (Number(sellingPrice || 0) * Number(discountPercent || 0) / 100))
+                    : money(Number(sellingPrice || 0))}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">Profit: {money((Number(sellingPrice || 0) - (isOnSale && Number(discountPercent) > 0 ? (Number(sellingPrice || 0) * Number(discountPercent || 0) / 100) : 0)) - Number(costPrice || 0))}</p>
               </div>
             </div>
           </div>
@@ -1207,9 +1313,9 @@ function Inventory({
   setHistoryMeta,
   reload,
 }: {
-  records: InventoryRow[];
+  records: any[];
   recordMeta: PageMeta;
-  setRecords: (records: InventoryRow[]) => void;
+  setRecords: (records: any[]) => void;
   setRecordMeta: (meta: PageMeta) => void;
   history: InventoryMove[];
   historyMeta: PageMeta;
@@ -1218,10 +1324,54 @@ function Inventory({
   reload: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
-  const [historySearch, setHistorySearch] = useState("");
-  const [movementType, setMovementType] = useState("");
-  const [modal, setModal] = useState<ModalKey>(null);
-  const [selected, setSelected] = useState<InventoryRow | null>(null);
+  const [stockFilter, setStockFilter] = useState("");
+  const [productFilter, setProductFilter] = useState("");
+  const [colorFilter, setColorFilter] = useState("");
+  const [sizeFilter, setSizeFilter] = useState("");
+  const [status, setStatus] = useState("active");
+  const [savingAction, setSavingAction] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, { quantity: number; threshold: number }>>({});
+  const [filters, setFilters] = useState<{ products: string[]; colors: string[]; sizes: string[] }>({ products: [], colors: [], sizes: [] });
+  const [expandedProducts, setExpandedProducts] = useState<Record<number, boolean>>({});
+
+  const productGroups = useMemo(() => {
+    return (records as any[]).map((product) => {
+      const variants = product.variants || [];
+      const totalStock = variants.reduce((sum: number, v: any) => sum + Math.max(0, v.quantity), 0);
+      const lowStockLimit = variants.reduce((sum: number, v: any) => sum + Math.max(0, v.low_stock_threshold), 0);
+      const isOutOfStock = totalStock <= 0;
+      const isLowStock = totalStock > 0 && totalStock <= lowStockLimit;
+      return {
+        productId: product.id,
+        product: product.name,
+        image: product.product_image,
+        records: variants,
+        totalStock,
+        lowStockLimit,
+        isLowStock,
+        isOutOfStock,
+      };
+    });
+  }, [records]);
+
+  function syncDrafts(nextRecords: any[]) {
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const product of nextRecords) {
+        for (const record of (product.variants || [])) {
+          next[record.id] = next[record.id] ?? { quantity: record.quantity, threshold: record.low_stock_threshold };
+        }
+      }
+      return next;
+    });
+  }
+
+  function patchRecord(recordId: number, patch: Partial<InventoryRow>) {
+    setRecords((records as any[]).map((product) => ({
+      ...product,
+      variants: (product.variants || []).map((record: any) => record.id === recordId ? { ...record, ...patch } : record)
+    })));
+  }
 
   async function loadRecords(page = recordMeta.page, pageSize = recordMeta.page_size) {
     try {
@@ -1229,141 +1379,296 @@ function Inventory({
         records_page: page,
         page_size: pageSize,
         search: query,
-        page: historyMeta.page,
+        stock_filter: stockFilter,
+        product: productFilter,
+        color: colorFilter,
+        size: sizeFilter,
+        status: status,
       });
       setRecords(rows.records);
       setRecordMeta({ count: rows.records_count, page: rows.records_page, page_size: rows.records_page_size, total_pages: rows.records_total_pages });
+      setFilters(rows.filters);
+      syncDrafts(rows.records);
     } catch (error) {
       notify("error", getErrorMessage(error));
     }
   }
 
-  async function loadHistory(page = historyMeta.page, pageSize = historyMeta.page_size) {
+  function updateDraft(recordId: number, patch: Partial<{ quantity: number; threshold: number }>) {
+    setDrafts((current) => ({
+      ...current,
+      [recordId]: {
+        quantity: current[recordId]?.quantity ?? 0,
+        threshold: current[recordId]?.threshold ?? 5,
+        ...patch,
+      },
+    }));
+  }
+
+  async function applyStockUpdate(record: InventoryRow, payload: { stock: number } | { delta: number }, action: string) {
+    const previous = record;
+    const nextStock = "stock" in payload ? Math.max(0, payload.stock) : Math.max(0, record.quantity + payload.delta);
+    const apiPayload = "delta" in payload && record.quantity + payload.delta < 0 ? { stock: 0 } : payload;
+    const actionKey = `${record.id}-${action}`;
+    patchRecord(record.id, {
+      quantity: nextStock,
+      is_out_of_stock: nextStock <= 0,
+      is_low_stock: nextStock <= record.low_stock_threshold,
+    });
+    updateDraft(record.id, { quantity: nextStock });
+    setSavingAction(actionKey);
     try {
-      const rows = await fetchInventory({
-        page,
-        page_size: pageSize,
-        search: query,
-        history_search: historySearch,
-        movement_type: movementType,
+      const updated = await updateInventoryStock(record.id, apiPayload);
+      patchRecord(record.id, {
+        quantity: updated.stock,
+        is_low_stock: updated.is_low_stock,
+        is_out_of_stock: updated.is_out_of_stock,
       });
-      setHistory(rows.history);
-      setHistoryMeta({ count: rows.history_count, page: rows.history_page, page_size: rows.history_page_size, total_pages: rows.history_total_pages });
+      updateDraft(record.id, { quantity: updated.stock });
+      notify("success", "Stock updated");
     } catch (error) {
+      patchRecord(record.id, previous);
+      updateDraft(record.id, { quantity: previous.quantity });
       notify("error", getErrorMessage(error));
+    } finally {
+      setSavingAction(null);
     }
+  }
+
+  function commitStockInput(record: InventoryRow) {
+    const draftStock = Math.max(0, drafts[record.id]?.quantity ?? record.quantity);
+    if (draftStock === record.quantity) return;
+    void applyStockUpdate(record, { stock: draftStock }, "input");
+  }
+
+  function toggleProduct(productId: number) {
+    setExpandedProducts((current) => ({ ...current, [productId]: !current[productId] }));
   }
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadRecords(1, recordMeta.page_size), 250);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, stockFilter, productFilter, colorFilter, sizeFilter, status]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void loadHistory(1, historyMeta.page_size), 250);
-    return () => window.clearTimeout(timer);
-  }, [historySearch, movementType]);
+    if (productFilter && productGroups.length === 1) {
+      setExpandedProducts((current) => ({ ...current, [productGroups[0].productId]: true }));
+    }
+  }, [productFilter, productGroups]);
+
+  function renderInventoryRows() {
+    return productGroups.map((group) => {
+      const expanded = expandedProducts[group.productId] ?? false;
+      return (
+        <Fragment key={group.productId}>
+          <tr className="border-t border-border bg-[#fffaf1]/70">
+            <td className="py-4">
+              <button type="button" onClick={() => toggleProduct(group.productId)} className="flex w-full items-center gap-3 text-left">
+                <ChevronRight className={`h-4 w-4 flex-shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                <img src={resolveMediaUrl(group.image)} alt={group.product} className="h-12 w-12 rounded-2xl bg-muted object-cover" />
+                <div>
+                  <p className="font-extrabold">{group.product}</p>
+                  <p className="text-xs text-muted-foreground">{group.records.length} variant{group.records.length === 1 ? "" : "s"} - click to {expanded ? "hide" : "view"}</p>
+                </div>
+              </button>
+            </td>
+            <td className="text-xs font-semibold text-muted-foreground">Product total</td>
+            <td className="text-xs font-semibold text-muted-foreground">-</td>
+            <td className="font-extrabold">{group.totalStock}</td>
+            <td>{group.lowStockLimit}</td>
+            <td><Badge tone={group.isOutOfStock ? "danger" : group.isLowStock ? "warning" : "success"}>{group.isOutOfStock ? "Out of stock" : group.isLowStock ? "Low stock" : "Healthy"}</Badge></td>
+            <td className="text-xs font-semibold text-muted-foreground">Expand to update variants</td>
+          </tr>
+          {expanded && group.records.map((record) => (
+            <tr key={record.id} className="border-t border-border">
+              <td className="py-4 pl-10">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Variant</div>
+              </td>
+              <td>
+                <div className="grid gap-1 text-xs sm:grid-cols-2">
+                  <span><strong>Color:</strong> {record.color || "Default"}</span>
+                  <span><strong>Size:</strong> {record.size || "-"}</span>
+                  <span><strong>Fabric:</strong> {record.fabric || "-"}</span>
+                  <span><strong>Stitching:</strong> {record.stitching || "-"}</span>
+                </div>
+              </td>
+              <td>{record.sku}</td>
+              <td>
+                <input
+                  value={drafts[record.id]?.quantity ?? record.quantity}
+                  onChange={(event) => updateDraft(record.id, { quantity: Math.max(0, Number(event.target.value || 0)) })}
+                  onBlur={() => commitStockInput(record)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  type="number"
+                  min="0"
+                  disabled={savingAction === `${record.id}-input`}
+                  className="w-24 rounded-2xl border border-border bg-background px-3 py-2 text-sm font-extrabold disabled:opacity-60"
+                />
+              </td>
+              <td>{record.low_stock_threshold}</td>
+              <td><Badge tone={record.is_out_of_stock ? "danger" : record.is_low_stock ? "warning" : "success"}>{record.is_out_of_stock ? "Out of stock" : record.is_low_stock ? "Low stock" : "Healthy"}</Badge></td>
+              <td>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[1, 5, 10].map((amount) => (
+                    <button key={`plus-${record.id}-${amount}`} disabled={savingAction === `${record.id}-plus-${amount}`} onClick={() => void applyStockUpdate(record, { delta: amount }, `plus-${amount}`)} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 disabled:opacity-60">
+                      {savingAction === `${record.id}-plus-${amount}` ? "..." : `+${amount}`}
+                    </button>
+                  ))}
+                  {[1, 5].map((amount) => (
+                    <button key={`minus-${record.id}-${amount}`} disabled={record.quantity <= 0 || savingAction === `${record.id}-minus-${amount}`} onClick={() => void applyStockUpdate(record, { delta: -amount }, `minus-${amount}`)} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 disabled:opacity-50">
+                      {savingAction === `${record.id}-minus-${amount}` ? "..." : `-${amount}`}
+                    </button>
+                  ))}
+                  <button disabled={savingAction === `${record.id}-stock-in`} onClick={() => void applyStockUpdate(record, { delta: 1 }, "stock-in")} className="rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>
+                    {savingAction === `${record.id}-stock-in` ? "..." : "Stock In"}
+                  </button>
+                  <button disabled={record.quantity <= 0 || savingAction === `${record.id}-stock-out`} onClick={() => void applyStockUpdate(record, { delta: -1 }, "stock-out")} className="rounded-full border border-border px-3 py-1.5 text-xs font-bold disabled:opacity-50">
+                    {savingAction === `${record.id}-stock-out` ? "..." : "Stock Out"}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </Fragment>
+      );
+    });
+  }
 
   return (
     <div className="space-y-4">
-      <Toolbar title="Inventory" search={query} setSearch={setQuery} placeholder="Search product or SKU..." right={<button onClick={() => { setSelected(records[0] ?? null); setModal("stock"); }} className="rounded-full px-5 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={!records.length} style={{ background: CRIMSON }}><Plus className="mr-2 inline h-4 w-4" />Stock In / Out</button>} />
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <Toolbar title="Inventory" search={query} setSearch={setQuery} placeholder="Search product, SKU, color, or size..." />
+      <Panel title="Inventory Filters">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <option value="active">Active Products</option>
+            <option value="archived">Archived Products</option>
+          </select>
+          <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <option value="">All stock</option>
+            <option value="low_stock">Low stock</option>
+            <option value="out_of_stock">Out of stock</option>
+          </select>
+          <select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <option value="">By product</option>
+            {filters.products.map((product) => <option key={product} value={product}>{product}</option>)}
+          </select>
+          <select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <option value="">By color</option>
+            {filters.colors.map((color) => <option key={color} value={color}>{color}</option>)}
+          </select>
+          <select value={sizeFilter} onChange={(event) => setSizeFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <option value="">By size</option>
+            {filters.sizes.map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+          <button onClick={() => { setStockFilter(""); setProductFilter(""); setColorFilter(""); setSizeFilter(""); setQuery(""); }} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-bold">
+            Clear filters
+          </button>
+        </div>
+      </Panel>
+      <div className="grid gap-4">
         <Panel title="Stock Table" action={<Badge tone="gold">{recordMeta.count} records</Badge>}>
           {records.length ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-sm">
-                <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>SKU</th><th>Stock</th><th>Threshold</th><th>Status</th><th className="text-right">Action</th></tr></thead>
-                <tbody>{records.map((record) => (
+              <table className="w-full min-w-[1080px] text-sm">
+                <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>Variant</th><th>SKU</th><th>Current Stock</th><th>Low Stock Limit</th><th>Status</th><th>Quick Update</th></tr></thead>
+                <tbody>{renderInventoryRows()}</tbody>{/*
                   <tr key={record.id} className="border-t border-border">
-                    <td className="py-4 font-extrabold">{record.product}</td>
+                    <td className="py-4">
+                      <div className="flex items-center gap-3">
+                        <img src={resolveMediaUrl(record.product_image)} alt={record.product} className="h-12 w-12 rounded-2xl bg-muted object-cover" />
+                        <div>
+                          <p className="font-extrabold">{record.product}</p>
+                          <p className="text-xs text-muted-foreground">{record.color || "Default"}{record.size ? ` · ${record.size}` : ""}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{record.variant || "Default variant"}</td>
                     <td>{record.sku}</td>
-                    <td>{record.quantity}</td>
+                    <td>
+                      <input
+                        value={drafts[record.id]?.quantity ?? record.quantity}
+                        onChange={(event) => updateDraft(record.id, { quantity: Math.max(0, Number(event.target.value || 0)) })}
+                        onBlur={() => commitStockInput(record)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        type="number"
+                        min="0"
+                        disabled={savingAction === `${record.id}-input`}
+                        className="w-24 rounded-2xl border border-border bg-background px-3 py-2 text-sm font-extrabold disabled:opacity-60"
+                      />
+                    </td>
                     <td>{record.low_stock_threshold}</td>
-                    <td><Badge tone={record.is_low_stock ? "danger" : "success"}>{record.is_low_stock ? "Low stock" : "Healthy"}</Badge></td>
-                    <td className="text-right"><button onClick={() => { setSelected(record); setModal("stock"); }} className="rounded-full border border-border px-3 py-2 text-xs font-bold">Move Stock</button></td>
+                    <td><Badge tone={record.is_out_of_stock ? "danger" : record.is_low_stock ? "warning" : "success"}>{record.is_out_of_stock ? "Out of stock" : record.is_low_stock ? "Low stock" : "Healthy"}</Badge></td>
+                    <td>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[1, 5, 10].map((amount) => (
+                          <button
+                            key={`plus-${record.id}-${amount}`}
+                            disabled={savingAction === `${record.id}-plus-${amount}`}
+                            onClick={() => void applyStockUpdate(record, { delta: amount }, `plus-${amount}`)}
+                            className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 disabled:opacity-60"
+                          >
+                            {savingAction === `${record.id}-plus-${amount}` ? "..." : `+${amount}`}
+                          </button>
+                        ))}
+                        {[1, 5].map((amount) => (
+                          <button
+                            key={`minus-${record.id}-${amount}`}
+                            disabled={record.quantity <= 0 || savingAction === `${record.id}-minus-${amount}`}
+                            onClick={() => void applyStockUpdate(record, { delta: -amount }, `minus-${amount}`)}
+                            className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 disabled:opacity-50"
+                          >
+                            {savingAction === `${record.id}-minus-${amount}` ? "..." : `-${amount}`}
+                          </button>
+                        ))}
+                        <button
+                          disabled={savingAction === `${record.id}-stock-in`}
+                          onClick={() => void applyStockUpdate(record, { delta: 1 }, "stock-in")}
+                          className="rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                          style={{ background: CRIMSON }}
+                        >
+                          {savingAction === `${record.id}-stock-in` ? "..." : "Stock In"}
+                        </button>
+                        <button
+                          disabled={record.quantity <= 0 || savingAction === `${record.id}-stock-out`}
+                          onClick={() => void applyStockUpdate(record, { delta: -1 }, "stock-out")}
+                          className="rounded-full border border-border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+                        >
+                          {savingAction === `${record.id}-stock-out` ? "..." : "Stock Out"}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}</tbody>
+                */}
               </table>
             </div>
           ) : <EmptyState title="No inventory records" message="Inventory records are created automatically when products are added." />}
           <PaginationControls meta={recordMeta} onPage={(page) => loadRecords(page)} onPageSize={(pageSize) => loadRecords(1, pageSize)} />
         </Panel>
-        <Panel title="Movement History" action={<Badge tone="gold">{historyMeta.count} records</Badge>}>
-          <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-            <SearchBox value={historySearch} onChange={setHistorySearch} placeholder="Search SKU or note..." />
-            <select value={movementType} onChange={(event) => setMovementType(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
-              <option value="">All movement</option>
-              <option value="in">Stock In</option>
-              <option value="out">Stock Out</option>
-              <option value="adjustment">Adjustment</option>
-            </select>
-          </div>
-          {history.length ? (
-            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
-              {history.map((move) => (
-                <div key={move.id} className="rounded-3xl bg-background/70 p-4 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-bold">{move.sku}</p>
-                    <Badge tone={move.movement_type === "out" ? "danger" : move.movement_type === "in" ? "success" : "warning"}>{move.movement_type}</Badge>
-                  </div>
-                  <p className="mt-1 text-muted-foreground">{move.quantity} units · {move.note || "No note"}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{new Date(move.created_at).toLocaleString()}</p>
-                </div>
-              ))}
-            </div>
-          ) : <EmptyState title="No stock history yet" message="Stock movements will be logged here." />}
-          <PaginationControls meta={historyMeta} onPage={(page) => loadHistory(page)} onPageSize={(pageSize) => loadHistory(1, pageSize)} />
-        </Panel>
       </div>
-      {modal === "stock" && <StockModal records={records} selected={selected} onClose={() => setModal(null)} onSaved={reload} />}
     </div>
   );
 }
 
-function StockModal({ records, selected, onClose, onSaved }: { records: InventoryRow[]; selected: InventoryRow | null; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [saving, setSaving] = useState(false);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setSaving(true);
-    try {
-      await moveStock({
-        variant_id: Number(form.get("variant_id")),
-        movement_type: String(form.get("movement_type")),
-        quantity: Number(form.get("quantity")),
-        note: String(form.get("note") ?? ""),
-      });
-      notify("success", "Inventory movement saved.");
-      onClose();
-      await onSaved();
-    } catch (error) {
-      notify("error", getErrorMessage(error));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Modal title="Stock In / Out" onClose={onClose}>
-      <form onSubmit={submit} className="grid gap-3">
-        <select name="variant_id" defaultValue={selected?.id} required className="rounded-2xl border border-border bg-background p-3">
-          {records.map((record) => <option key={record.id} value={record.id}>{record.product} · {record.sku} · Current {record.quantity}</option>)}
-        </select>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <select name="movement_type" className="rounded-2xl border border-border bg-background p-3">
-            <option value="in">Stock In</option>
-            <option value="out">Stock Out</option>
-            <option value="adjustment">Adjustment</option>
-          </select>
-          <input name="quantity" type="number" min="1" required placeholder="Quantity" className="rounded-2xl border border-border bg-background p-3" />
-        </div>
-        <textarea name="note" placeholder="Reason / supplier / correction note" className="min-h-24 rounded-2xl border border-border bg-background p-3" />
-        <button disabled={saving} className="rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>{saving ? "Saving..." : "Save Movement"}</button>
-      </form>
-    </Modal>
-  );
-}
+type PosCartLine = {
+  product: ApiProduct;
+  variantId: number | null;
+  colorVariantId: number | null;
+  variantLabel: string;
+  colorName: string;
+  image: string;
+  unitPrice: number;
+  qty: number;
+  discount: string;
+  stock: number;
+};
 
 function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promise<void> }) {
   const activeProducts = products.filter((product) => product.status === "active");
@@ -1373,8 +1678,9 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [cart, setCart] = useState<{ product: ApiProduct; qty: number; discount: string }[]>([]);
+  const [cart, setCart] = useState<PosCartLine[]>([]);
   const [invoice, setInvoice] = useState<ApiTrackedOrder | null>(null);
+  const [variantProduct, setVariantProduct] = useState<ApiProduct | null>(null);
 
   const visible = activeProducts.filter((product) => {
     const matchesQuery = [product.name, productSku(product)].join(" ").toLowerCase().includes(query.toLowerCase());
@@ -1382,28 +1688,103 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
     return matchesQuery && matchesCategory;
   });
   const total = cart.reduce((sum, line) => {
-    const lineSubtotal = Number(line.product.effective_price) * line.qty;
+    const lineSubtotal = line.unitPrice * line.qty;
     return sum + Math.max(0, lineSubtotal - manualDiscountAmount(line.discount, lineSubtotal));
   }, 0);
 
-  function addToCart(product: ApiProduct) {
+  function findColorVariant(product: ApiProduct, variant: ApiProduct["variants"][number]) {
+    return product.color_variants.find((item) => item.id === variant.color_variant)
+      ?? product.color_variants.find((item) => item.color_name.toLowerCase() === String(variant.color || "").toLowerCase())
+      ?? null;
+  }
+
+  function variantImage(product: ApiProduct, variant: ApiProduct["variants"][number], colorVariant = findColorVariant(product, variant)) {
+    const variantImageUrl = variant.images?.[0] ? resolveMediaUrl(variant.images[0].thumbnail_url || variant.images[0].image_url || variant.images[0].thumbnail || variant.images[0].image) : "";
+    if (variantImageUrl) return variantImageUrl;
+    const colorImage = colorVariant?.images?.[0]
+      ? resolveMediaUrl(colorVariant.images[0].thumbnail_url || colorVariant.images[0].image_url || colorVariant.images[0].thumbnail || colorVariant.images[0].image)
+      : resolveMediaUrl(colorVariant?.image_url || colorVariant?.image || "");
+    return colorImage || firstImage(product) || "";
+  }
+
+  function variantLabel(variant: ApiProduct["variants"][number], colorName?: string | null) {
+    return [colorName || variant.color, variant.size, variant.fabric, variant.is_stitched ? "Stitched" : "Unstitched"].filter(Boolean).join(" / ");
+  }
+
+  function pushCartLine(line: PosCartLine) {
     setCart((rows) => {
-      const existing = rows.find((row) => row.product.id === product.id);
-      if (existing) return rows.map((row) => row.product.id === product.id ? { ...row, qty: row.qty + 1 } : row);
-      return [...rows, { product, qty: 1, discount: "" }];
+      const existing = rows.find((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId);
+      if (existing) {
+        return rows.map((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId
+          ? { ...row, qty: Math.min(row.stock, row.qty + 1) }
+          : row);
+      }
+      return [...rows, line];
     });
+  }
+
+  function addSimpleProduct(product: ApiProduct) {
+    const stock = Math.max(0, Number(product.total_stock ?? product.stock ?? 0));
+    if (stock <= 0) {
+      notify("error", "This product is out of stock.");
+      return;
+    }
+    pushCartLine({
+      product,
+      variantId: null,
+      colorVariantId: null,
+      variantLabel: product.sku || "Standard",
+      colorName: "",
+      image: firstImage(product) || "",
+      unitPrice: Number(product.final_price || product.effective_price || product.selling_price || product.base_price || 0),
+      qty: 1,
+      discount: "",
+      stock,
+    });
+  }
+
+  function openVariantSelection(product: ApiProduct) {
+    const variants = product.variants.filter((variant) => variant.is_active);
+    if (!variants.length) {
+      addSimpleProduct(product);
+      return;
+    }
+    setVariantProduct(product);
+  }
+
+  function addSelectedVariant(product: ApiProduct, variant: ApiProduct["variants"][number]) {
+    const stock = Math.max(0, Number(variant.stock ?? 0));
+    if (stock <= 0) return;
+    const colorVariant = findColorVariant(product, variant);
+    pushCartLine({
+      product,
+      variantId: variant.id,
+      colorVariantId: colorVariant?.id ?? null,
+      variantLabel: variantLabel(variant, colorVariant?.color_name),
+      colorName: colorVariant?.color_name || variant.color || "",
+      image: variantImage(product, variant, colorVariant),
+      unitPrice: Number(variant.final_price || variant.effective_price || variant.sale_price || variant.price || product.final_price || product.effective_price || 0),
+      qty: 1,
+      discount: "",
+      stock,
+    });
+    setVariantProduct(null);
   }
 
   async function checkout(showInvoice: boolean) {
     try {
       const sale = await createPosSale({
         items: cart.map((line) => {
-          const lineSubtotal = Number(line.product.effective_price) * line.qty;
-          return {
+          const lineSubtotal = line.unitPrice * line.qty;
+          const payload: Record<string, unknown> = {
             product_id: line.product.id,
             quantity: line.qty,
+            unit_price: line.unitPrice,
             discount: manualDiscountAmount(line.discount, lineSubtotal),
           };
+          if (line.variantId) payload.variant_id = line.variantId;
+          if (line.colorVariantId) payload.color_variant_id = line.colorVariantId;
+          return payload;
         }),
         payment_method: paymentMethod,
         customer_name: customerName || "Walk-in Customer",
@@ -1438,7 +1819,7 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
         {visible.length ? (
           <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {visible.map((product) => (
-              <button key={product.id} onClick={() => addToCart(product)} className="group rounded-[2rem] border border-border bg-background p-3 text-left transition hover:-translate-y-1 hover:border-[#b21f36] hover:shadow-xl">
+              <button key={product.id} onClick={() => openVariantSelection(product)} className="group rounded-[2rem] border border-border bg-background p-3 text-left transition hover:-translate-y-1 hover:border-[#b21f36] hover:shadow-xl">
                 <div className="aspect-[4/3] overflow-hidden rounded-3xl bg-muted">{firstImage(product) ? <img src={firstImage(product)} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>}</div>
                 <p className="mt-3 font-extrabold">{product.name}</p>
                 <div className="mt-2 flex items-center justify-between text-sm">
@@ -1460,16 +1841,25 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
         </div>
         <div className="mt-5 space-y-3">
           {cart.length ? cart.map((line) => (
-            <div key={line.product.id} className="rounded-3xl bg-background/70 p-4">
+            <div key={`${line.product.id}-${line.variantId ?? "product"}-${line.colorVariantId ?? "base"}`} className="rounded-3xl bg-background/70 p-4">
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-bold">{line.product.name}</p><p className="text-xs text-muted-foreground">{money(line.product.effective_price)}</p></div>
-                <button onClick={() => setCart((rows) => rows.filter((row) => row.product.id !== line.product.id))} className="text-rose-600"><Trash2 className="h-4 w-4" /></button>
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                    {line.image ? <img src={line.image} alt={line.product.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">No image</div>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold">{line.product.name}</p>
+                    <p className="text-xs text-muted-foreground">{line.variantLabel || line.product.sku || "Standard"}</p>
+                    <p className="text-xs text-muted-foreground">{money(line.unitPrice)}</p>
+                  </div>
+                </div>
+                <button onClick={() => setCart((rows) => rows.filter((row) => !(row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId)))} className="text-rose-600"><Trash2 className="h-4 w-4" /></button>
               </div>
               <div className="mt-3 grid grid-cols-[auto_1fr] gap-2">
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setCart((rows) => rows.map((row) => row.product.id === line.product.id ? { ...row, qty: Math.max(1, row.qty - 1) } : row))} className="rounded-full border px-3 py-1"><ChevronLeft className="h-3 w-3" /></button>
+                  <button onClick={() => setCart((rows) => rows.map((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId ? { ...row, qty: Math.max(1, row.qty - 1) } : row))} className="rounded-full border px-3 py-1"><ChevronLeft className="h-3 w-3" /></button>
                   <span className="w-8 text-center text-sm font-bold">{line.qty}</span>
-                  <button onClick={() => setCart((rows) => rows.map((row) => row.product.id === line.product.id ? { ...row, qty: row.qty + 1 } : row))} className="rounded-full border px-3 py-1">+</button>
+                  <button onClick={() => setCart((rows) => rows.map((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId ? { ...row, qty: Math.min(row.stock, row.qty + 1) } : row))} className="rounded-full border px-3 py-1">+</button>
                 </div>
                 <label className="grid gap-1 rounded-2xl border border-[#c9a060]/45 bg-[#fff8eb] px-3 py-2 text-left shadow-sm">
                   <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#7d0020]">
@@ -1477,7 +1867,7 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
                   </span>
                   <input
                     value={line.discount}
-                    onChange={(event) => setCart((rows) => rows.map((row) => row.product.id === line.product.id ? { ...row, discount: event.target.value } : row))}
+                    onChange={(event) => setCart((rows) => rows.map((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId ? { ...row, discount: event.target.value } : row))}
                     placeholder="Discount % or amount"
                     className="min-w-0 bg-transparent text-xs font-bold text-[#13070b] outline-none placeholder:text-[#8b6b34]/70"
                   />
@@ -1496,8 +1886,87 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
           <button disabled={!cart.length} onClick={() => checkout(true)} className="w-full rounded-full border border-[#7d0020]/25 bg-background px-5 py-3 text-sm font-bold disabled:opacity-50" style={{ color: CRIMSON }}><Receipt className="mr-2 inline h-4 w-4" />Complete Sale + Invoice</button>
         </div>
       </Panel>
+      {variantProduct && (
+        <PosVariantPickerModal
+          product={variantProduct}
+          onClose={() => setVariantProduct(null)}
+          onSelect={addSelectedVariant}
+        />
+      )}
       {invoice && <InvoiceModal order={invoice} onClose={closeInvoice} />}
     </div>
+  );
+}
+
+function PosVariantPickerModal({
+  product,
+  onClose,
+  onSelect,
+}: {
+  product: ApiProduct;
+  onClose: () => void;
+  onSelect: (product: ApiProduct, variant: ApiProduct["variants"][number]) => void;
+}) {
+  const variants = product.variants.filter((variant) => variant.is_active);
+
+  function findColorVariant(variant: ApiProduct["variants"][number]) {
+    return product.color_variants.find((item) => item.id === variant.color_variant)
+      ?? product.color_variants.find((item) => item.color_name.toLowerCase() === String(variant.color || "").toLowerCase())
+      ?? null;
+  }
+
+  function optionImage(variant: ApiProduct["variants"][number], colorVariant = findColorVariant(variant)) {
+    const variantImageUrl = variant.images?.[0]
+      ? resolveMediaUrl(variant.images[0].thumbnail_url || variant.images[0].image_url || variant.images[0].thumbnail || variant.images[0].image)
+      : "";
+    if (variantImageUrl) return variantImageUrl;
+    const colorImage = colorVariant?.images?.[0]
+      ? resolveMediaUrl(colorVariant.images[0].thumbnail_url || colorVariant.images[0].image_url || colorVariant.images[0].thumbnail || colorVariant.images[0].image)
+      : resolveMediaUrl(colorVariant?.image_url || colorVariant?.image || "");
+    return colorImage || firstImage(product) || "";
+  }
+
+  function optionLabel(variant: ApiProduct["variants"][number], colorVariant = findColorVariant(variant)) {
+    return [colorVariant?.color_name || variant.color, variant.size, variant.fabric, variant.is_stitched ? "Stitched" : "Unstitched"].filter(Boolean).join(" / ");
+  }
+
+  return (
+    <Modal title={`Choose Variant • ${product.name}`} onClose={onClose}>
+      <div className="space-y-3">
+        {variants.length ? variants.map((variant) => {
+          const colorVariant = findColorVariant(variant);
+          const stock = Math.max(0, Number(variant.stock ?? 0));
+          const selectable = stock > 0;
+          const image = optionImage(variant, colorVariant);
+          const finalPrice = money(variant.final_price || variant.effective_price || variant.sale_price || variant.price || product.final_price || product.effective_price);
+
+          return (
+            <button
+              key={variant.id}
+              type="button"
+              disabled={!selectable}
+              onClick={() => onSelect(product, variant)}
+              className={`flex w-full items-center gap-3 rounded-[1.6rem] border p-3 text-left transition ${selectable ? "border-border bg-background hover:-translate-y-0.5 hover:border-[#b21f36] hover:shadow-lg" : "cursor-not-allowed border-border/60 bg-muted/40 opacity-70"}`}
+            >
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                {image ? <img src={image} alt={product.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">No image</div>}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-extrabold">{colorVariant?.color_name || variant.color || "Default"}</p>
+                  {colorVariant?.color_hex && <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: colorVariant.color_hex }} />}
+                  <Badge tone={selectable ? "success" : "danger"}>{selectable ? `${stock} in stock` : "Out of stock"}</Badge>
+                </div>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{optionLabel(variant, colorVariant) || productSku(product)}</p>
+                <p className="mt-2 text-sm font-bold">{finalPrice}</p>
+              </div>
+            </button>
+          );
+        }) : (
+          <EmptyState title="No active variants" message="This product has no active variants configured for POS." />
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -1519,6 +1988,7 @@ function Orders({
   const [payment, setPayment] = useState("all");
   const [ordering, setOrdering] = useState("-created_at");
   const [selected, setSelected] = useState<ApiTrackedOrder | null>(null);
+  const [pendingRefund, setPendingRefund] = useState<ApiTrackedOrder | null>(null);
 
   async function loadOrders(page = meta.page, pageSize = meta.page_size) {
     try {
@@ -1563,10 +2033,10 @@ function Orders({
   }
 
   async function refundOrder(order: ApiTrackedOrder) {
-    if (!window.confirm(`Refund ${order.tracking_id || order.number}? Inventory will be restored and revenue adjusted.`)) return;
     try {
       await updateAdminOrder(order.id, { status: "refunded", note: "Admin refund from Order Records" });
       notify("success", "Order refunded.");
+      setPendingRefund(null);
       await reload();
     } catch (error) {
       notify("error", getErrorMessage(error));
@@ -1587,10 +2057,20 @@ function Orders({
         </>
       )} />
       <Panel title="Orders" action={<Badge tone="gold">{meta.count} records</Badge>}>
-        <OrdersTable orders={orders} onView={setSelected} onStatus={changeStatus} onVerify={verifyPayment} onRefund={refundOrder} onPrint={printOrder} />
+        <OrdersTable orders={orders} onView={setSelected} onStatus={changeStatus} onVerify={verifyPayment} onRefund={setPendingRefund} onPrint={printOrder} />
         <PaginationControls meta={meta} onPage={(page) => loadOrders(page)} onPageSize={(pageSize) => loadOrders(1, pageSize)} />
       </Panel>
       {selected && <OrderDetailModal order={selected} onClose={() => setSelected(null)} />}
+      {pendingRefund && (
+        <ConfirmModal
+          title="Confirm Refund"
+          message={`Refund order ${pendingRefund.tracking_id || pendingRefund.number}? Inventory will be restored and revenue adjusted.`}
+          confirmLabel="Confirm Refund"
+          icon={AlertTriangle}
+          onCancel={() => setPendingRefund(null)}
+          onConfirm={() => refundOrder(pendingRefund)}
+        />
+      )}
     </div>
   );
 }
@@ -1814,6 +2294,8 @@ function Sales({
   const [invoice, setInvoice] = useState<ApiTrackedOrder | null>(null);
   const [invoiceAction, setInvoiceAction] = useState<"view" | "print" | "download">("view");
   const [invoiceLoading, setInvoiceLoading] = useState<string | null>(null);
+  const [pendingRefundOrder, setPendingRefundOrder] = useState<ApiTrackedOrder | null>(null);
+  const [pendingRefundSale, setPendingRefundSale] = useState<SaleRecord | null>(null);
   const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.grand_total), 0);
   const posRevenue = sales.filter((sale) => sale.source === "pos").reduce((sum, sale) => sum + Number(sale.grand_total), 0);
   const websiteRevenue = totalRevenue - posRevenue;
@@ -1841,10 +2323,10 @@ function Sales({
   }
 
   async function refundOrder(order: ApiTrackedOrder) {
-    if (!window.confirm(`Refund ${order.tracking_id || order.number}? Inventory will be restored and revenue adjusted.`)) return;
     try {
       await updateAdminOrder(order.id, { status: "refunded", note: "Admin refund from Order Records" });
       notify("success", "Order refunded.");
+      setPendingRefundOrder(null);
       await reload();
     } catch (error) {
       notify("error", getErrorMessage(error));
@@ -1887,11 +2369,10 @@ function Sales({
       notify("info", "This sale is already refunded.");
       return;
     }
-    const confirmed = window.confirm(`Refund ${sale.number}? This will restore inventory and remove the sale amount from revenue totals.`);
-    if (!confirmed) return;
     try {
       await refundSale(sale.id, { reason: "Admin refund from Sales Records", status: "returned" });
       notify("success", "Sale refunded and inventory restored.");
+      setPendingRefundSale(null);
       await reload();
     } catch (error) {
       notify("error", getErrorMessage(error));
@@ -1940,7 +2421,7 @@ function Sales({
                         <button disabled={loadingThisInvoice} onClick={() => openInvoice(sale, "print")} className="rounded-full border border-border px-3 py-2 text-xs font-bold disabled:opacity-50"><Printer className="mr-1 inline h-3.5 w-3.5" />Print Invoice</button>
                         <button disabled={loadingThisInvoice} onClick={() => openInvoice(sale, "download")} className="rounded-full px-3 py-2 text-xs font-bold text-white disabled:opacity-50" style={{ background: CRIMSON }}><Download className="mr-1 inline h-3.5 w-3.5" />Download Invoice</button>
                         {!sale.refunded_at && !["refunded", "cancelled"].includes(sale.payment_status) && (
-                          <button onClick={() => refundRecord(sale)} className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">Refund</button>
+                          <button onClick={() => setPendingRefundSale(sale)} className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">Refund</button>
                         )}
                       </div>
                     </td>
@@ -1952,6 +2433,26 @@ function Sales({
         ) : <EmptyState title="No sales records" message="Completed orders and POS invoices will appear here." />}
         <PaginationControls meta={meta} onPage={(page) => loadSales(page)} onPageSize={(pageSize) => loadSales(1, pageSize)} />
       </Panel>
+      {pendingRefundOrder && (
+        <ConfirmModal
+          title="Confirm Refund"
+          message={`Refund order ${pendingRefundOrder.tracking_id || pendingRefundOrder.number}? Inventory will be restored and revenue adjusted.`}
+          confirmLabel="Confirm Refund"
+          icon={AlertTriangle}
+          onCancel={() => setPendingRefundOrder(null)}
+          onConfirm={() => refundOrder(pendingRefundOrder)}
+        />
+      )}
+      {pendingRefundSale && (
+        <ConfirmModal
+          title="Confirm Refund"
+          message={`Refund order ${pendingRefundSale.number}? Inventory will be restored and revenue adjusted.`}
+          confirmLabel="Confirm Refund"
+          icon={AlertTriangle}
+          onCancel={() => setPendingRefundSale(null)}
+          onConfirm={() => refundRecord(pendingRefundSale)}
+        />
+      )}
       {invoice && (
         <InvoiceErrorBoundary onClose={() => setInvoice(null)}>
           <InvoiceModal

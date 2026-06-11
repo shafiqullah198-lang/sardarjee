@@ -26,9 +26,13 @@ class CheckoutView(APIView):
         cart = None
         if not payload_items and request.user.is_authenticated:
             cart = Cart.objects.filter(user=request.user).prefetch_related("items__variant__product").first()
+            cart_items_qs = cart.items.filter(variant__product__is_active=True, variant__product__archived_at__isnull=True)
+            from apps.catalog.models import Product
+            if hasattr(Product, "deleted_at"):
+                cart_items_qs = cart_items_qs.filter(variant__product__deleted_at__isnull=True)
             payload_items = [
                 {"variant_id": item.variant_id, "quantity": item.quantity, "unit_price": item.variant.price}
-                for item in cart.items.all()
+                for item in cart_items_qs
             ] if cart else []
         if not payload_items:
             return Response({"detail": "Cart is empty."}, status=status.HTTP_400_BAD_REQUEST)

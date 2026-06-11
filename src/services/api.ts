@@ -1,6 +1,7 @@
 import axios, {
   type AxiosError,
   type AxiosInstance,
+  type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from "axios";
 import type { ApiErrorBody, AuthTokens } from "./types";
@@ -13,6 +14,8 @@ const REQUEST_TIMEOUT_MS = Number(
 );
 
 export const TOKEN_STORAGE_KEY = "premium_auth_tokens";
+const inflightGetRequests = new Map<string, Promise<unknown>>();
+const cachedGetResponses = new Map<string, { expiresAt: number; data: unknown }>();
 
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/v1\/?$/, "");
@@ -128,6 +131,11 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
+function buildCacheKey(url: string, config?: AxiosRequestConfig) {
+  const params = config?.params ? JSON.stringify(config.params) : "";
+  return `${url}::${params}`;
+}
+
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const tokens = getStoredTokens();
   if (tokens?.access) {
@@ -182,4 +190,38 @@ export async function safeRequest<T>(
   } catch {
     return null;
   }
+}
+
+export async function cachedGet<T>(
+  url: string,
+  config?: AxiosRequestConfig,
+  ttlMs = 0,
+): Promise<T> {
+  const cacheKey = buildCacheKey(url, config);
+  const now = Date.now();
+  const cached = cachedGetResponses.get(cacheKey);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.data as T;
+  }
+
+  const inflight = inflightGetRequests.get(cacheKey);
+  if (inflight) {
+    return inflight as Promise<T>;
+  }
+
+  const request = apiClient.get<T>(url, config).then((response) => {
+    if (ttlMs > 0) {
+      cachedGetResponses.set(cacheKey, {
+        expiresAt: now + ttlMs,
+        data: response.data,
+      });
+    }
+    return response.data;
+  }).finally(() => {
+    inflightGetRequests.delete(cacheKey);
+  });
+
+  inflightGetRequests.set(cacheKey, request);
+  return request;
 }

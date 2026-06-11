@@ -10,6 +10,7 @@ export interface ProductListParams {
   sale?: boolean;
   section?: "men" | "wedding" | "fabrics";
   page?: number;
+  page_size?: number;
 }
 
 function buildQuery(params?: ProductListParams): Record<string, string> {
@@ -23,6 +24,7 @@ function buildQuery(params?: ProductListParams): Record<string, string> {
   if (params.sale) query.sale = "true";
   if (params.section) query.section = params.section;
   if (params.page) query.page = String(params.page);
+  if (params.page_size) query.page_size = String(params.page_size);
   return query;
 }
 
@@ -41,13 +43,18 @@ export async function fetchProductBySlug(slug: string): Promise<ApiProduct> {
   return data;
 }
 
+export async function fetchProductById(id: number | string): Promise<ApiProduct> {
+  const { data } = await apiClient.get<ApiProduct>(`/products/${id}/`);
+  return data;
+}
+
 export async function fetchFeaturedProducts(): Promise<ApiProduct[]> {
-  const data = await safeRequest(() => fetchProducts({ featured: true }));
+  const data = await safeRequest(() => fetchProducts({ featured: true, page_size: 8 }));
   return data?.results ?? [];
 }
 
 export async function fetchLatestProducts(): Promise<ApiProduct[]> {
-  const data = await safeRequest(() => fetchProducts());
+  const data = await safeRequest(() => fetchProducts({ page_size: 8 }));
   return data?.results ?? [];
 }
 
@@ -60,12 +67,12 @@ export async function fetchTrendingProducts(): Promise<ApiProduct[]> {
 }
 
 export async function fetchNewArrivalProducts(): Promise<ApiProduct[]> {
-  const data = await safeRequest(() => fetchProducts({ new_arrival: true }));
+  const data = await safeRequest(() => fetchProducts({ new_arrival: true, page_size: 8 }));
   return data?.results ?? [];
 }
 
 export async function fetchSaleProducts(): Promise<ApiProduct[]> {
-  const data = await safeRequest(() => fetchProducts({ sale: true }));
+  const data = await safeRequest(() => fetchProducts({ sale: true, page_size: 8 }));
   return data?.results ?? [];
 }
 
