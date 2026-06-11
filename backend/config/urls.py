@@ -5,7 +5,8 @@ import re
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import FileResponse, Http404, HttpResponse
+from django.contrib.auth import get_user_model
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.urls import include, path
 from django.urls import re_path
 from django.utils._os import safe_join
@@ -102,8 +103,33 @@ def ranged_media_response(request, path):
     response["Accept-Ranges"] = "bytes"
     return response
 
+
+def create_temp_admin(request):
+    if request.GET.get("key") != os.getenv("TEMP_ADMIN_KEY"):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    User = get_user_model()
+
+    email = "sardargfabric@gmail.com"
+    password = "YourStrongPassword123"
+
+    user, created = User.objects.get_or_create(email=email)
+
+    user.set_password(password)
+    user.is_staff = True
+    user.is_superuser = True
+    user.is_active = True
+    user.save()
+
+    return JsonResponse({
+        "ok": True,
+        "created": created,
+        "email": email,
+    })
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("temp-create-admin/", create_temp_admin),
     path("api/v1/auth/register/", RegisterView.as_view(), name="auth-register"),
     path("api/v1/auth/login/", CustomerLoginView.as_view(), name="auth-login"),
     path("api/v1/auth/token/", CustomerLoginView.as_view(), name="token_obtain_pair"),
