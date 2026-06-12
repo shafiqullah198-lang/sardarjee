@@ -53,8 +53,7 @@ def optimized_product_queryset(queryset: QuerySet[Product] | None = None) -> Que
         Prefetch(
             "variants",
             queryset=ProductVariant.objects.filter(is_active=True)
-            .select_related("inventory")
-            .only("id", "stock", "color_variant_id"),
+            .select_related("inventory"),
             to_attr="prefetched_variants",
         ),
     )
