@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.text import slugify
 
 from apps.common.models import TimeStampedModel
-from apps.common.images import build_thumbnail, compress_uploaded_image
+from apps.common.images import build_thumbnail, compress_uploaded_image, should_process_field_file
 
 
 class Category(TimeStampedModel):
@@ -135,10 +135,12 @@ class ProductColorVariant(TimeStampedModel):
         ]
 
     def save(self, *args, **kwargs):
-        if self.image:
+        sync_product = kwargs.pop("sync_product", True)
+        if should_process_field_file(self, "image"):
             compress_uploaded_image(self.image)
         super().save(*args, **kwargs)
-        self.product.recalculate_stock()
+        if sync_product:
+            self.product.recalculate_stock()
 
     def delete(self, *args, **kwargs):
         product = self.product
@@ -167,7 +169,7 @@ class ProductColorVariantImage(TimeStampedModel):
         ]
 
     def save(self, *args, **kwargs):
-        if self.image:
+        if should_process_field_file(self, "image"):
             compress_uploaded_image(self.image)
             thumbnail = build_thumbnail(self.image)
             if thumbnail is not None:
@@ -263,7 +265,7 @@ class ProductVariantImage(TimeStampedModel):
         ]
 
     def save(self, *args, **kwargs):
-        if self.image:
+        if should_process_field_file(self, "image"):
             compress_uploaded_image(self.image)
             thumbnail = build_thumbnail(self.image)
             if thumbnail is not None:
@@ -288,7 +290,7 @@ class ProductImage(TimeStampedModel):
         ]
 
     def save(self, *args, **kwargs):
-        if self.image:
+        if should_process_field_file(self, "image"):
             compress_uploaded_image(self.image)
             thumbnail = build_thumbnail(self.image)
             if thumbnail is not None:

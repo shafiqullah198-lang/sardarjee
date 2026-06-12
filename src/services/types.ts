@@ -71,6 +71,7 @@ export interface ApiProduct {
   name: string;
   product_name?: string;
   slug: string;
+  created_at?: string;
   description: string;
   category: ApiCategory;
   main_image?: string | null;
@@ -92,6 +93,7 @@ export interface ApiProduct {
   show_in_men: boolean;
   show_in_wedding: boolean;
   show_in_fabrics: boolean;
+  show_in_fabric?: boolean;
   average_rating?: number;
   reviews_count?: number;
   rating_breakdown?: Record<string, number>;

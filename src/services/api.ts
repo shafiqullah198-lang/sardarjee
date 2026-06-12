@@ -6,8 +6,15 @@ import axios, {
 } from "axios";
 import type { ApiErrorBody, AuthTokens } from "./types";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+function normalizeApiBaseUrl(value: string | undefined): string {
+  const trimmed = value?.trim();
+  const fallback = "http://localhost:8000/api/v1";
+  return (trimmed || fallback).replace(/\/+$/, "");
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL,
+);
 
 const REQUEST_TIMEOUT_MS = Number(
   import.meta.env.VITE_API_TIMEOUT_MS ?? 15000,
@@ -19,6 +26,10 @@ const cachedGetResponses = new Map<string, { expiresAt: number; data: unknown }>
 
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+}
+
+export function apiPath(path: string): string {
+  return `/${path.replace(/^\/+/, "")}`;
 }
 
 export function resolveMediaUrl(path: string | null | undefined): string {
@@ -134,6 +145,24 @@ export const apiClient: AxiosInstance = axios.create({
 function buildCacheKey(url: string, config?: AxiosRequestConfig) {
   const params = config?.params ? JSON.stringify(config.params) : "";
   return `${url}::${params}`;
+}
+
+export function clearCachedGets(match?: string | RegExp): void {
+  if (!match) {
+    inflightGetRequests.clear();
+    cachedGetResponses.clear();
+    return;
+  }
+
+  const matches = (key: string) =>
+    typeof match === "string" ? key.startsWith(match) || key.includes(match) : match.test(key);
+
+  for (const key of inflightGetRequests.keys()) {
+    if (matches(key)) inflightGetRequests.delete(key);
+  }
+  for (const key of cachedGetResponses.keys()) {
+    if (matches(key)) cachedGetResponses.delete(key);
+  }
 }
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {

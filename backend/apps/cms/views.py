@@ -9,7 +9,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.catalog.models import Category, Product
+from apps.catalog.querysets import active_product_filter, optimized_product_queryset
 from apps.catalog.serializers import CategorySerializer, ProductSerializer
+from apps.common.cache import get_public_cached_payload, set_public_cached_payload
 from apps.cms.models import CareerOpportunity, HomepageBanner, HomepageDisplaySettings, HomepageStat, HomepageStory
 from apps.cms.serializers import (
     CareerOpportunitySerializer,
@@ -187,6 +189,9 @@ class HomeContentView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        cached = get_public_cached_payload(request, "home-content")
+        if cached is not None:
+            return Response(cached)
         banners = HomepageBanner.objects.filter(is_active=True).order_by("sort_order")
         story = HomepageStory.objects.filter(is_active=True).order_by("-updated_at").first()
         settings = HomepageDisplaySettings.objects.order_by("-updated_at").first()
@@ -196,36 +201,39 @@ class HomeContentView(APIView):
             .select_related("user", "product")
             .order_by("-is_featured", "-created_at")[:6]
         )
-        featured_products_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True, is_featured=True)
-        if hasattr(Product, "deleted_at"):
-            featured_products_qs = featured_products_qs.filter(deleted_at__isnull=True)
-        featured_products = featured_products_qs.prefetch_related("color_variants", "images")[:8]
+        featured_products = optimized_product_queryset(
+            Product.objects.filter(active_product_filter(), is_featured=True)
+        )[:8]
 
-        lookbook_products_qs = Product.objects.filter(status=Product.Status.ACTIVE, is_active=True, archived_at__isnull=True)
-        if hasattr(Product, "deleted_at"):
-            lookbook_products_qs = lookbook_products_qs.filter(deleted_at__isnull=True)
-        lookbook_products = lookbook_products_qs.prefetch_related("color_variants", "images").order_by("-created_at")[: display.lookbook_limit]
+        lookbook_products = optimized_product_queryset(
+            Product.objects.filter(active_product_filter())
+        ).order_by("-created_at")[: display.lookbook_limit]
         categories = Category.objects.filter(is_active=True, parent__isnull=True)[:10]
-        return Response(
-            {
-                "banners": HomepageBannerSerializer(banners, many=True, context={"request": request}).data,
-                "stats": serialize_homepage_summary_stats(),
-                "home_stats": calculate_homepage_summary_stats(),
-                "story": HomepageStorySerializer(story).data if story else None,
-                "display_settings": HomepageDisplaySettingsSerializer(display).data,
-                "testimonials": ReviewSerializer(testimonials, many=True).data,
-                "featured_products": ProductSerializer(featured_products, many=True, context={"request": request}).data,
-                "lookbook_products": ProductSerializer(lookbook_products, many=True, context={"request": request}).data,
-                "categories": CategorySerializer(categories, many=True, context={"request": request}).data,
-            }
-        )
+        payload = {
+            "banners": HomepageBannerSerializer(banners, many=True, context={"request": request}).data,
+            "stats": serialize_homepage_summary_stats(),
+            "home_stats": calculate_homepage_summary_stats(),
+            "story": HomepageStorySerializer(story).data if story else None,
+            "display_settings": HomepageDisplaySettingsSerializer(display).data,
+            "testimonials": ReviewSerializer(testimonials, many=True, context={"request": request}).data,
+            "featured_products": ProductSerializer(featured_products, many=True, context={"request": request}).data,
+            "lookbook_products": ProductSerializer(lookbook_products, many=True, context={"request": request}).data,
+            "categories": CategorySerializer(categories, many=True, context={"request": request}).data,
+        }
+        set_public_cached_payload(request, "home-content", payload)
+        return Response(payload)
 
 
 class HomeStatsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response(calculate_homepage_summary_stats())
+        cached = get_public_cached_payload(request, "home-stats")
+        if cached is not None:
+            return Response(cached)
+        payload = calculate_homepage_summary_stats()
+        set_public_cached_payload(request, "home-stats", payload)
+        return Response(payload)
 
 
 class AdminHomepageView(APIView):
@@ -314,8 +322,13 @@ class LiveHomepageStatsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        cached = get_public_cached_payload(request, "live-home-stats")
+        if cached is not None:
+            return Response(cached)
         stats = HomepageStat.objects.filter(is_active=True).order_by("sort_order")
-        return Response(serialize_live_stats(stats))
+        payload = serialize_live_stats(stats)
+        set_public_cached_payload(request, "live-home-stats", payload)
+        return Response(payload)
 
 
 class CareersView(APIView):

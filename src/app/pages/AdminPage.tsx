@@ -70,7 +70,7 @@ import {
   type SaleRecord,
 } from "@/services/admin";
 import { fetchAdminSession, loginAdmin, logoutAdmin, type AdminSession } from "@/services/adminAuth";
-import { ApiRequestError, resolveMediaUrl } from "@/services/api";
+import { API_BASE_URL, ApiRequestError, resolveMediaUrl } from "@/services/api";
 import type { ApiProduct, ApiProductColorVariant, ApiReview, ApiTrackedOrder } from "@/services/types";
 import type { ApiCareerOpportunity } from "@/services/types";
 import sardarjeeLogo from "@/imports/Sardar_jee_3.jpg";
@@ -250,6 +250,10 @@ export function AdminPage() {
       }
 
       if (nextTab === "pos") {
+        if (!force && loadedTabs.products) {
+          markTabLoaded("pos");
+          return;
+        }
         const rows = await fetchAdminProducts({ page: 1, page_size: 20 });
         setProducts(rows.results);
         setProductMeta(rows);
@@ -273,6 +277,10 @@ export function AdminPage() {
       }
 
       if (nextTab === "products") {
+        if (!force && loadedTabs.pos) {
+          markTabLoaded("products");
+          return;
+        }
         const rows = await fetchAdminProducts({ page: 1, page_size: 20 });
         setProducts(rows.results);
         setProductMeta(rows);
@@ -753,7 +761,7 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
     } catch (loginError) {
       if (loginError instanceof ApiRequestError) {
         if (loginError.status === 0) {
-          setError("Backend is not running or CORS is blocking the request. Start Django on http://localhost:8000 and Vite on http://localhost:5173.");
+          setError(`Backend is not reachable or CORS is blocking the request. Check that the backend is running and VITE_API_BASE_URL is set to ${API_BASE_URL}.`);
         } else if (loginError.status === 400) {
           setError("Wrong email or password.");
         } else if (loginError.status === 403) {
@@ -938,6 +946,50 @@ function Products({
   const [selected, setSelected] = useState<ApiProduct | null>(null);
   const [ordering, setOrdering] = useState("-created_at");
 
+  function matchesCurrentFilters(product: ApiProduct) {
+    const term = query.trim().toLowerCase();
+    const haystack = [
+      product.name,
+      productSku(product),
+      product.category?.name ?? "",
+    ].join(" ").toLowerCase();
+    const matchesQuery = !term || haystack.includes(term);
+    const productStatus = product.status ?? "draft";
+    const matchesStatus =
+      status === "all" ||
+      (status === "active" && productStatus === "active") ||
+      (status === "draft" && productStatus === "draft") ||
+      (status === "archived" && productStatus === "archived");
+    return matchesQuery && matchesStatus;
+  }
+
+  async function handleProductSaved(savedProduct: ApiProduct) {
+    const shouldRefetch =
+      meta.page !== 1 ||
+      ordering !== "-created_at" ||
+      !matchesCurrentFilters(savedProduct);
+
+    if (shouldRefetch) {
+      await loadProducts(meta.page, meta.page_size);
+      return;
+    }
+
+    const existingIndex = products.findIndex((product) => product.id === savedProduct.id);
+    if (existingIndex >= 0) {
+      const next = products.map((product) => product.id === savedProduct.id ? savedProduct : product);
+      setProducts(next);
+      return;
+    }
+
+    const nextCount = meta.count + 1;
+    setProducts([savedProduct, ...products].slice(0, meta.page_size));
+    setMeta({
+      ...meta,
+      count: nextCount,
+      total_pages: Math.max(1, Math.ceil(nextCount / meta.page_size)),
+    });
+  }
+
   async function loadProducts(page = meta.page, pageSize = meta.page_size) {
     try {
       const rows = await fetchAdminProducts({
@@ -1044,13 +1096,13 @@ function Products({
         ) : <EmptyState title="No products available yet." message="Add products from admin to make them appear on the public website and POS." action={<button onClick={() => setModal("product")} className="rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Add Product</button>} />}
         <PaginationControls meta={meta} onPage={(page) => loadProducts(page)} onPageSize={(pageSize) => loadProducts(1, pageSize)} />
       </Panel>
-      {modal === "product" && <ProductModal product={selected} onClose={() => setModal(null)} onSaved={reload} />}
+      {modal === "product" && <ProductModal product={selected} onClose={() => setModal(null)} onSaved={handleProductSaved} />}
       {modal === "deleteProduct" && <ConfirmModal title="Delete product?" message="This product has order history, so it will be archived instead of permanently deleted." confirmLabel="Delete Product" onCancel={() => setModal(null)} onConfirm={deleteProduct} />}
     </div>
   );
 }
 
-function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | null; onClose: () => void; onSaved: () => Promise<void> }) {
+function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | null; onClose: () => void; onSaved: (product: ApiProduct) => Promise<void> }) {
   const [preview, setPreview] = useState(firstImage(product));
   const [colorRows, setColorRows] = useState<ColorVariantFormRow[]>(() => toColorRows(product?.color_variants));
   const [costPrice, setCostPrice] = useState(product?.cost_price ?? "0");
@@ -1104,10 +1156,10 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
         stock: Number(row.stock || 0),
         image_field: `color_variant_image_${row.uid}`,
       }))));
-      await saveAdminProduct(form, product?.id);
+      const savedProduct = await saveAdminProduct(form, product?.id);
+      await onSaved(savedProduct);
       notify("success", product ? "Product updated." : "Product created.");
       onClose();
-      await onSaved();
     } catch (error) {
       notify("error", getErrorMessage(error));
     } finally {

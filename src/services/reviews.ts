@@ -1,4 +1,4 @@
-import { apiClient } from "./api";
+import { apiClient, cachedGet } from "./api";
 import type { ApiReview } from "./types";
 
 export interface ReviewPayload {
@@ -10,13 +10,15 @@ export interface ReviewPayload {
 }
 
 export async function fetchReviews(productId?: number): Promise<ApiReview[]> {
-  const { data } = await apiClient.get<ApiReview[]>("/reviews/approved/", { params: productId ? { product: productId } : undefined });
-  return data;
+  return cachedGet<ApiReview[]>(
+    "/reviews/approved/",
+    { params: productId ? { product: productId } : undefined },
+    60 * 1000,
+  );
 }
 
 export async function fetchApprovedReviews(): Promise<ApiReview[]> {
-  const { data } = await apiClient.get<ApiReview[]>("/reviews/approved/");
-  return data;
+  return cachedGet<ApiReview[]>("/reviews/approved/", undefined, 60 * 1000);
 }
 
 export async function createReview(payload: ReviewPayload): Promise<ApiReview> {

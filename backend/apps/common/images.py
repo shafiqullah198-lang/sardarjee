@@ -16,6 +16,24 @@ def _open_image(file_obj):
     return image
 
 
+def should_process_field_file(instance, field_name: str) -> bool:
+    field_file = getattr(instance, field_name, None)
+    if not field_file:
+        return False
+    if instance._state.adding or not instance.pk:
+        return True
+
+    try:
+        current = type(instance).objects.only(field_name).get(pk=instance.pk)
+    except type(instance).DoesNotExist:
+        return True
+
+    current_file = getattr(current, field_name, None)
+    current_name = getattr(current_file, "name", "") or ""
+    next_name = getattr(field_file, "name", "") or ""
+    return current_name != next_name
+
+
 def compress_uploaded_image(field_file, quality=82):
     if not field_file:
         return

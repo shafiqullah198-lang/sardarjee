@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.orders.models import Order, OrderItem
+from apps.common.cache import get_public_cached_payload, set_public_cached_payload
 from apps.reviews.models import Review
 from apps.reviews.serializers import ReviewSerializer
 
@@ -65,6 +66,9 @@ class ApprovedReviewsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        cached = get_public_cached_payload(request, "reviews")
+        if cached is not None:
+            return Response(cached)
         reviews = (
             Review.objects.filter(is_hidden=False, is_spam=False)
             .select_related("user", "product")
@@ -73,7 +77,9 @@ class ApprovedReviewsView(APIView):
         product_id = request.query_params.get("product")
         if product_id:
             reviews = reviews.filter(product_id=product_id)
-        return Response(ReviewSerializer(reviews, many=True, context={"request": request}).data)
+        payload = ReviewSerializer(reviews, many=True, context={"request": request}).data
+        set_public_cached_payload(request, "reviews", payload)
+        return Response(payload)
 
 
 class ReviewEligibilityView(APIView):

@@ -1,4 +1,4 @@
-import { apiClient, cachedGet } from "./api";
+import { apiClient, apiPath, cachedGet } from "./api";
 import type {
   ApiHomepageBanner,
   ApiHomepageDisplaySettings,
@@ -119,17 +119,19 @@ export interface AdminPaginated<T> {
   results: T[];
 }
 
+const ADMIN_PRODUCTS_PATH = apiPath("admin/products/");
+
 export async function fetchAdminDashboard(params?: { days?: number }): Promise<AdminDashboard> {
   return cachedGet<AdminDashboard>("/admin/dashboard/", { params }, 10 * 1000);
 }
 
 export async function fetchAdminProducts(params?: AdminPageParams): Promise<AdminPaginated<ApiProduct>> {
-  return cachedGet<AdminPaginated<ApiProduct>>("/admin/products/", { params });
+  return cachedGet<AdminPaginated<ApiProduct>>(ADMIN_PRODUCTS_PATH, { params });
 }
 
 export async function saveAdminProduct(form: FormData, id?: number): Promise<ApiProduct> {
   const { data } = await apiClient.request<ApiProduct>({
-    url: id ? `/admin/products/${id}/` : "/admin/products/",
+    url: id ? apiPath(`admin/products/${id}/`) : ADMIN_PRODUCTS_PATH,
     method: id ? "PATCH" : "POST",
     data: form,
     headers: { "Content-Type": "multipart/form-data" },
@@ -138,7 +140,7 @@ export async function saveAdminProduct(form: FormData, id?: number): Promise<Api
 }
 
 export async function deleteAdminProduct(id: number): Promise<{ success: boolean; message: string; archived: boolean }> {
-  const { data } = await apiClient.delete<{ success: boolean; message: string; archived: boolean }>(`/admin/products/${id}/`);
+  const { data } = await apiClient.delete<{ success: boolean; message: string; archived: boolean }>(apiPath(`admin/products/${id}/`));
   return data;
 }
 

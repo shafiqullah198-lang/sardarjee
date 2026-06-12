@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchHomeContentSafe } from "@/services/cms";
 import {
-  fetchFeaturedProducts,
-  fetchLatestProducts,
-  fetchNewArrivalProducts,
-  fetchSaleProducts,
-  fetchTrendingProducts,
+  fetchProductsSafeFresh,
 } from "@/services/products";
 import { fetchCategoriesList } from "@/services/categories";
 import { resolveMediaUrl } from "@/services/api";
@@ -82,6 +78,14 @@ export interface UiProduct {
   stock: number;
   hasDiscount: boolean;
   discountPercent: number;
+  isFeatured: boolean;
+  isTrending: boolean;
+  isNewArrival: boolean;
+  isOnSale: boolean;
+  showInMen: boolean;
+  showInWedding: boolean;
+  showInFabrics: boolean;
+  status: string;
   colorVariants: UiColorVariant[];
   variants: UiProductVariant[];
   description: string;
@@ -196,6 +200,16 @@ function productBadge(p: ApiProduct): string {
   return "New Arrival";
 }
 
+function isPubliclyVisibleProduct(product: ApiProduct): boolean {
+  const status = String(product.status ?? "").toLowerCase();
+  const stock = Number(product.total_stock ?? product.stock ?? 0);
+  return status === "active" && stock > 0;
+}
+
+function showInFabricSection(product: ApiProduct): boolean {
+  return Boolean(product.show_in_fabrics || product.show_in_fabric);
+}
+
 export function mapApiProduct(
   p: ApiProduct,
   index: number,
@@ -233,6 +247,14 @@ export function mapApiProduct(
     stock: p.total_stock ?? p.stock ?? fallback?.stock ?? 0,
     hasDiscount: hasSale,
     discountPercent: Number(p.discount_percent || 0),
+    isFeatured: Boolean(p.is_featured),
+    isTrending: Boolean(p.is_trending),
+    isNewArrival: Boolean(p.is_new_arrival),
+    isOnSale: Boolean(p.is_on_sale),
+    showInMen: Boolean(p.show_in_men),
+    showInWedding: Boolean(p.show_in_wedding),
+    showInFabrics: showInFabricSection(p),
+    status: p.status ?? "",
     colorVariants,
     variants,
     description: p.description ?? "",
@@ -399,6 +421,18 @@ function mergeTestimonials(
     .map((review) => mapApiTestimonial(review));
 }
 
+function sortNewest(products: ApiProduct[]): ApiProduct[] {
+  return [...products].sort((a, b) => {
+    const left = new Date(a.created_at ?? 0).getTime();
+    const right = new Date(b.created_at ?? 0).getTime();
+    return right - left;
+  });
+}
+
+function selectFlaggedProducts(products: ApiProduct[], predicate: (product: ApiProduct) => boolean, limit = 8): ApiProduct[] {
+  return sortNewest(products).filter(predicate).slice(0, limit);
+}
+
 export function useHomepageData(): HomepageData {
   const [state, setState] = useState<HomepageData>({
     hero: null,
@@ -423,22 +457,30 @@ export function useHomepageData(): HomepageData {
 
     async function load() {
       const home = await fetchHomeContentSafe();
-      const needsFallbackProducts = !home?.featured_products?.length || !home?.lookbook_products?.length;
+      const needsFallbackProducts =
+        !home?.featured_products?.length ||
+        !home?.lookbook_products?.length ||
+        !home?.home_stats;
       const needsFallbackCategories = !home?.categories?.length;
-      const [featured, latest, trending, newArrivals, saleProducts, categories] =
+      const [catalog, categories] =
         await Promise.all([
-          needsFallbackProducts ? fetchFeaturedProducts() : Promise.resolve([]),
-          needsFallbackProducts ? fetchLatestProducts() : Promise.resolve([]),
-          needsFallbackProducts ? fetchTrendingProducts() : Promise.resolve([]),
-          fetchNewArrivalProducts(),
-          fetchSaleProducts(),
+          needsFallbackProducts ? fetchProductsSafeFresh({ page_size: 24 }) : Promise.resolve(null),
           needsFallbackCategories ? fetchCategoriesList() : Promise.resolve([]),
         ]);
 
       if (cancelled) return;
 
-      const cmsFeatured = home?.featured_products ?? [];
+      const allProducts = (catalog?.results ?? []).filter(isPubliclyVisibleProduct);
+      const cmsFeatured = (home?.featured_products ?? []).filter(isPubliclyVisibleProduct);
       const cmsCategories = home?.categories ?? [];
+      const featured = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_featured));
+      const trending = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_trending));
+      const newArrivals = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_new_arrival));
+      const saleProducts = selectFlaggedProducts(
+        allProducts,
+        (product) => Boolean(product.is_on_sale) && Number(product.discount_percent || 0) > 0,
+      );
+      const latest = sortNewest(allProducts).slice(0, 8);
       const featuredSrc = cmsFeatured.length ? cmsFeatured : featured;
       const categorySrc = cmsCategories.length ? cmsCategories : categories;
       const categoryImageFallbacks = buildCategoryImageFallbacks([
@@ -448,7 +490,7 @@ export function useHomepageData(): HomepageData {
         featured,
         cmsFeatured,
         trending,
-        home?.lookbook_products ?? [],
+        home?.lookbook_products?.length ? home.lookbook_products : latest,
       ]);
 
       const next: HomepageData = {
@@ -466,7 +508,12 @@ export function useHomepageData(): HomepageData {
           latest,
           newArrivals,
         ]),
-        lookbookProducts: mergeProductsWithImages(home?.lookbook_products ?? [], 6),
+        lookbookProducts: mergeProductsWithImages(
+          (home?.lookbook_products ?? []).filter(isPubliclyVisibleProduct).length
+            ? (home?.lookbook_products ?? []).filter(isPubliclyVisibleProduct)
+            : latest,
+          6,
+        ),
         stats: mapHomepageSummaryStats(home?.home_stats),
         story: home?.story
           ? { ...home.story, image: resolveMediaUrl(home.story.image) }

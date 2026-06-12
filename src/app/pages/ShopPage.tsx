@@ -111,9 +111,14 @@ export function ShopPage({ section: sectionProp }: { section?: ShopSection }) {
             : category
               ? { category }
               : {};
-        const res = await fetchProducts(params);
+        const res = await fetchProducts(params, { forceRefresh: true });
         if (cancelled) return;
-        setAllProducts(res.results.map((p, i) => mapApiProduct(p, i)));
+        const visible = res.results.filter((product) => {
+          const status = String(product.status ?? "").toLowerCase();
+          const stock = Number(product.total_stock ?? product.stock ?? 0);
+          return status === "active" && stock > 0;
+        });
+        setAllProducts(visible.map((p, i) => mapApiProduct(p, i)));
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load products.");
@@ -167,14 +172,14 @@ export function ShopPage({ section: sectionProp }: { section?: ShopSection }) {
     // we only apply extra client-side flags from the product's hasDiscount / badge info
     if (activeFilter !== "all") {
       list = list.filter((p) => {
-        if (activeFilter === "sale") return p.hasDiscount;
-        if (activeFilter === "new_arrival") return p.badge.toLowerCase().includes("new");
-        if (activeFilter === "featured") return p.badge.toLowerCase().includes("featured");
-        if (activeFilter === "trending") return p.badge.toLowerCase().includes("trending");
+        if (activeFilter === "sale") return p.isOnSale && p.hasDiscount;
+        if (activeFilter === "new_arrival") return p.isNewArrival;
+        if (activeFilter === "featured") return p.isFeatured;
+        if (activeFilter === "trending") return p.isTrending;
         // section filters — just show all when already section-filtered
-        if (activeFilter === "men") return true;
-        if (activeFilter === "wedding") return true;
-        if (activeFilter === "fabrics") return true;
+        if (activeFilter === "men") return p.showInMen;
+        if (activeFilter === "wedding") return p.showInWedding;
+        if (activeFilter === "fabrics") return p.showInFabrics;
         return true;
       });
     }

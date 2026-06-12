@@ -123,8 +123,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProductsLoading(true);
     setProductsError(null);
     try {
-      const data = await fetchProducts();
-      setProducts(data.results.map((product, index) => mapApiProduct(product, index)));
+      const data = await fetchProducts(undefined, { forceRefresh: true });
+      const visible = data.results.filter((product) => {
+        const status = String(product.status ?? "").toLowerCase();
+        const stock = Number(product.total_stock ?? product.stock ?? 0);
+        return status === "active" && stock > 0;
+      });
+      setProducts(visible.map((product, index) => mapApiProduct(product, index)));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to load products";
       setProductsError(message);

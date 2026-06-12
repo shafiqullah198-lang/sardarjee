@@ -1,5 +1,8 @@
-import { apiClient, safeRequest } from "./api";
+import { apiPath, cachedGet, clearCachedGets, safeRequest } from "./api";
 import type { ApiProduct, PaginatedResponse } from "./types";
+
+const PRODUCT_CACHE_TTL_MS = 60 * 1000;
+const PRODUCTS_PATH = apiPath("products/");
 
 export interface ProductListParams {
   q?: string;
@@ -11,6 +14,10 @@ export interface ProductListParams {
   section?: "men" | "wedding" | "fabrics";
   page?: number;
   page_size?: number;
+}
+
+export interface ProductRequestOptions {
+  forceRefresh?: boolean;
 }
 
 function buildQuery(params?: ProductListParams): Record<string, string> {
@@ -30,22 +37,24 @@ function buildQuery(params?: ProductListParams): Record<string, string> {
 
 export async function fetchProducts(
   params?: ProductListParams,
+  options?: ProductRequestOptions,
 ): Promise<PaginatedResponse<ApiProduct>> {
-  const { data } = await apiClient.get<PaginatedResponse<ApiProduct>>(
-    "/products/",
+  if (options?.forceRefresh) {
+    clearCachedGets(PRODUCTS_PATH);
+  }
+  return cachedGet<PaginatedResponse<ApiProduct>>(
+    PRODUCTS_PATH,
     { params: buildQuery(params) },
+    PRODUCT_CACHE_TTL_MS,
   );
-  return data;
 }
 
 export async function fetchProductBySlug(slug: string): Promise<ApiProduct> {
-  const { data } = await apiClient.get<ApiProduct>(`/products/${slug}/`);
-  return data;
+  return cachedGet<ApiProduct>(apiPath(`products/${slug}/`), undefined, PRODUCT_CACHE_TTL_MS);
 }
 
 export async function fetchProductById(id: number | string): Promise<ApiProduct> {
-  const { data } = await apiClient.get<ApiProduct>(`/products/${id}/`);
-  return data;
+  return cachedGet<ApiProduct>(apiPath(`products/${id}/`), undefined, PRODUCT_CACHE_TTL_MS);
 }
 
 export async function fetchFeaturedProducts(): Promise<ApiProduct[]> {
@@ -60,10 +69,17 @@ export async function fetchLatestProducts(): Promise<ApiProduct[]> {
 
 export async function fetchTrendingProducts(): Promise<ApiProduct[]> {
   const data = await safeRequest(async () => {
-    const response = await apiClient.get<ApiProduct[]>("/products/trending/");
-    return response.data;
+    return cachedGet<ApiProduct[]>(apiPath("products/trending/"), undefined, PRODUCT_CACHE_TTL_MS);
   });
   return data ?? [];
+}
+
+export async function fetchProductsSafe(params?: ProductListParams): Promise<PaginatedResponse<ApiProduct> | null> {
+  return safeRequest(() => fetchProducts(params));
+}
+
+export async function fetchProductsSafeFresh(params?: ProductListParams): Promise<PaginatedResponse<ApiProduct> | null> {
+  return safeRequest(() => fetchProducts(params, { forceRefresh: true }));
 }
 
 export async function fetchNewArrivalProducts(): Promise<ApiProduct[]> {
@@ -79,4 +95,8 @@ export async function fetchSaleProducts(): Promise<ApiProduct[]> {
 export async function fetchSectionProducts(section: "men" | "wedding" | "fabrics"): Promise<ApiProduct[]> {
   const data = await safeRequest(() => fetchProducts({ section }));
   return data?.results ?? [];
+}
+
+export function clearProductCache(): void {
+  clearCachedGets(PRODUCTS_PATH);
 }

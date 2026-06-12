@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.catalog.models import Category, Product, ProductColorVariant, ProductImage, ProductVariant, ProductVariantImage
+from apps.catalog.querysets import optimized_product_queryset
 from apps.catalog.serializers import ProductSerializer
 from apps.cart.models import CartItem
 from apps.inventory.models import InventoryRecord, StockLedgerEntry
@@ -451,7 +452,7 @@ class AdminProductView(APIView):
         data = request.data
         category_name = data.get("category", "General")
         category, _ = Category.objects.get_or_create(name=category_name)
-        product = Product.objects.filter(pk=pk).first() if pk else Product()
+        product = Product.objects.select_for_update().filter(pk=pk).first() if pk else Product()
         product.name = data.get("name", product.name)
         product.description = data.get("description", product.description)
         product.category = category
@@ -472,38 +473,56 @@ class AdminProductView(APIView):
         product.show_in_men = _bool_value(data.get("show_in_men", False))
         product.show_in_wedding = _bool_value(data.get("show_in_wedding", False))
         product.show_in_fabrics = _bool_value(data.get("show_in_fabrics", False))
-        product.save()
-        variant = product.variants.first()
-        if not variant:
-            variant = ProductVariant.objects.create(product=product, sku=data.get("sku") or f"SKU-{product.id}")
-        elif data.get("sku") and variant.sku != data.get("sku"):
-            variant.sku = data.get("sku")
-            variant.save(update_fields=["sku", "updated_at"])
         color_variants_raw = data.get("color_variants")
         has_color_variants_payload = color_variants_raw is not None
+        stock = data.get("stock")
+        if not has_color_variants_payload and stock is not None:
+            product.stock = max(0, int(stock or 0))
+        product.save()
+
+        variant = None
+        if not has_color_variants_payload:
+            variant = product.variants.order_by("id").first()
+            if not variant:
+                variant = ProductVariant.objects.create(
+                    product=product,
+                    sku=data.get("sku") or _default_variant_sku(product),
+                    stock=max(0, product.stock or 0),
+                )
+                sync_variant_inventory_record(variant)
+            else:
+                variant_fields_to_update = []
+                next_sku = data.get("sku")
+                if next_sku and variant.sku != next_sku:
+                    variant.sku = next_sku
+                    variant_fields_to_update.append("sku")
+                if variant.stock != product.stock:
+                    variant.stock = product.stock
+                    variant_fields_to_update.append("stock")
+                if variant_fields_to_update:
+                    variant_fields_to_update.append("updated_at")
+                    variant.save(update_fields=variant_fields_to_update)
+                    sync_variant_inventory_record(variant)
+
         if has_color_variants_payload:
             saved_color_count = self._save_color_variants(request, product, color_variants_raw)
-            if saved_color_count == 0 and data.get("stock") is not None:
-                stock_value = max(0, int(data.get("stock") or 0))
-                product.stock = stock_value
-                product.save(update_fields=["stock", "updated_at"])
-                variant.stock = stock_value
-                variant.save(update_fields=["stock", "updated_at"])
-                sync_variant_inventory_record(variant)
-        else:
-            stock = data.get("stock")
-            if stock is not None:
+            if saved_color_count == 0 and stock is not None:
                 stock_value = max(0, int(stock or 0))
                 product.stock = stock_value
                 product.save(update_fields=["stock", "updated_at"])
-                variant.stock = stock_value
-                variant.save(update_fields=["stock", "updated_at"])
-                sync_variant_inventory_record(variant)
+                fallback_variant = product.variants.order_by("id").first()
+                if fallback_variant:
+                    fallback_variant.stock = stock_value
+                    fallback_variant.save(update_fields=["stock", "updated_at"])
+                    sync_variant_inventory_record(fallback_variant)
         image = request.FILES.get("image")
         if image:
             ProductImage.objects.create(product=product, image=image, alt_text=product.name)
-        product.refresh_from_db()
-        return Response(ProductSerializer(product, context={"request": request}).data, status=status.HTTP_201_CREATED if not pk else status.HTTP_200_OK)
+        saved_product = optimized_product_queryset(Product.objects.filter(pk=product.pk)).get()
+        return Response(
+            ProductSerializer(saved_product, context={"request": request}).data,
+            status=status.HTTP_201_CREATED if not pk else status.HTTP_200_OK,
+        )
 
     def _save_color_variants(self, request, product, raw):
         try:
@@ -513,6 +532,12 @@ class AdminProductView(APIView):
         if not isinstance(rows, list):
             rows = []
 
+        requested_ids = [
+            row.get("id")
+            for row in rows
+            if isinstance(row, dict) and row.get("id")
+        ]
+        existing_variants = ProductColorVariant.objects.in_bulk(requested_ids)
         kept_ids = []
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
@@ -521,7 +546,9 @@ class AdminProductView(APIView):
             if not color_name:
                 continue
             variant_id = row.get("id")
-            variant = ProductColorVariant.objects.filter(product=product, pk=variant_id).first() if variant_id else ProductColorVariant(product=product)
+            variant = existing_variants.get(variant_id) if variant_id else ProductColorVariant(product=product)
+            if variant and variant.product_id != product.id:
+                continue
             variant.color_name = color_name
             variant.color_hex = row.get("color_hex") or None
             variant.stock = max(0, int(row.get("stock") or 0))
@@ -529,13 +556,12 @@ class AdminProductView(APIView):
             image = request.FILES.get(image_field)
             if image:
                 variant.image = image
-            variant.save()
+            variant.save(sync_product=False)
             kept_ids.append(variant.id)
 
         ProductColorVariant.objects.filter(product=product).exclude(id__in=kept_ids).delete()
-        if kept_ids:
-            _sync_product_variants(product)
-            product.recalculate_stock()
+        _sync_product_variants(product)
+        product.recalculate_stock()
         return len(kept_ids)
 
 

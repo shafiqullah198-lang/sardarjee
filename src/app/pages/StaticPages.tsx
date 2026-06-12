@@ -4,11 +4,10 @@ import { Link } from "react-router";
 import { ArrowRight, BriefcaseBusiness, MapPin, Phone, Send } from "lucide-react";
 import { CRIMSON, GOLD, POPPINS } from "@/app/constants";
 import { ProductCard } from "@/app/components/ProductCard";
-import { mapApiProduct, useHomepageData, type UiProduct } from "@/hooks/useHomepageData";
+import { useHomepageData, type UiProduct } from "@/hooks/useHomepageData";
 import { useStore } from "@/context/StoreContext";
 import { ROUTES } from "@/app/routes";
 import { fetchCareerOpportunities } from "@/services/cms";
-import { fetchNewArrivalProducts, fetchSaleProducts } from "@/services/products";
 import type { ApiCareerOpportunity } from "@/services/types";
 
 const PHONE = "0315-9457186";
@@ -244,25 +243,9 @@ export function CareersPage() {
 }
 
 export function SalePage() {
-  const [saleProducts, setSaleProducts] = useState<UiProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadSaleProducts() {
-      setLoading(true);
-      const rows = await fetchSaleProducts();
-      if (cancelled) return;
-      setSaleProducts(rows.map((product, index) => mapApiProduct(product, index)));
-      setLoading(false);
-    }
-
-    void loadSaleProducts();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const homepage = useHomepageData();
+  const saleProducts = homepage.saleProducts;
+  const loading = homepage.loading;
 
   return (
     <PageShell eyebrow="Sale" title="Sale Collection" intro="Discounted fabrics and limited offers from the active product catalog.">
@@ -278,25 +261,9 @@ export function SalePage() {
 }
 
 export function NewArrivalsPage() {
-  const [newArrivalProducts, setNewArrivalProducts] = useState<UiProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadNewArrivalProducts() {
-      setLoading(true);
-      const rows = await fetchNewArrivalProducts();
-      if (cancelled) return;
-      setNewArrivalProducts(rows.map((product, index) => mapApiProduct(product, index)));
-      setLoading(false);
-    }
-
-    void loadNewArrivalProducts();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const homepage = useHomepageData();
+  const newArrivalProducts = homepage.newArrivals;
+  const loading = homepage.loading;
 
   return (
     <PageShell eyebrow="Fresh Stock" title="New Arrivals" intro="The latest products marked as new arrivals by our team.">
