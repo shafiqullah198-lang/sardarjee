@@ -70,7 +70,7 @@ import {
   type SaleRecord,
 } from "@/services/admin";
 import { fetchAdminSession, loginAdmin, logoutAdmin, type AdminSession } from "@/services/adminAuth";
-import { API_BASE_URL, ApiRequestError, resolveMediaUrl } from "@/services/api";
+import { API_BASE_URL, AUTH_REQUIRED_EVENT, ApiRequestError, resolveMediaUrl } from "@/services/api";
 import type { ApiProduct, ApiProductColorVariant, ApiReview, ApiTrackedOrder } from "@/services/types";
 import type { ApiCareerOpportunity } from "@/services/types";
 import sardarjeeLogo from "@/imports/Sardar_jee_3.jpg";
@@ -220,6 +220,23 @@ export function AdminPage() {
     setLoadedTabs((current) => current[tabKey] ? current : { ...current, [tabKey]: true });
   }
 
+  function resetAdminSession() {
+    setSession({ authenticated: false });
+    setDashboard(null);
+    setHomepage(null);
+    setProducts([]);
+    setOrders([]);
+    setInventory([]);
+    setHistory([]);
+    setSales([]);
+    setCareers([]);
+    setReviews([]);
+    setOrderEvents([]);
+    setLoadedTabs({});
+    setLoading(false);
+    setError("");
+  }
+
   async function loadDashboardData(showLoader = true) {
     if (!session?.authenticated) return;
     if (showLoader) setLoading(true);
@@ -337,6 +354,15 @@ export function AdminPage() {
   }, []);
 
   useEffect(() => {
+    function handleAuthRequired() {
+      resetAdminSession();
+    }
+
+    window.addEventListener(AUTH_REQUIRED_EVENT, handleAuthRequired);
+    return () => window.removeEventListener(AUTH_REQUIRED_EVENT, handleAuthRequired);
+  }, []);
+
+  useEffect(() => {
     if (session?.authenticated) {
       void loadDashboardData(true);
     }
@@ -353,19 +379,7 @@ export function AdminPage() {
       await logoutAdmin();
       notify("success", "Logged out securely.");
     } finally {
-      setSession({ authenticated: false });
-      setDashboard(null);
-      setHomepage(null);
-      setProducts([]);
-      setOrders([]);
-      setInventory([]);
-      setHistory([]);
-      setSales([]);
-      setCareers([]);
-      setReviews([]);
-      setOrderEvents([]);
-      setLoadedTabs({});
-      setLoading(false);
+      resetAdminSession();
     }
   }
 

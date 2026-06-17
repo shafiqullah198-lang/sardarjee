@@ -21,6 +21,7 @@ const REQUEST_TIMEOUT_MS = Number(
 );
 
 export const TOKEN_STORAGE_KEY = "premium_auth_tokens";
+export const AUTH_REQUIRED_EVENT = "premium-auth-required";
 const inflightGetRequests = new Map<string, Promise<unknown>>();
 const cachedGetResponses = new Map<string, { expiresAt: number; data: unknown }>();
 
@@ -52,9 +53,26 @@ export function getStoredTokens(): AuthTokens | null {
 export function setStoredTokens(tokens: AuthTokens | null): void {
   if (!tokens) {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
+    clearCachedGets();
     return;
   }
   localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
+}
+
+function isAdminApiUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url, API_BASE_URL);
+    return parsed.pathname.includes("/api/v1/admin/")
+      || parsed.pathname.includes("/api/v1/inventory/items/");
+  } catch {
+    return url.startsWith("/admin/") || url.startsWith("/inventory/items/");
+  }
+}
+
+function notifyAuthRequired(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
 }
 
 export class ApiRequestError extends Error {
@@ -90,12 +108,12 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!tokens?.refresh) return null;
 
   try {
-    const { data } = await axios.post<{ access: string }>(
+    const { data } = await axios.post<{ access: string; refresh?: string }>(
       `${API_BASE_URL}/auth/refresh/`,
       { refresh: tokens.refresh },
       { timeout: REQUEST_TIMEOUT_MS },
     );
-    const next: AuthTokens = { access: data.access, refresh: tokens.refresh };
+    const next: AuthTokens = { access: data.access, refresh: data.refresh ?? tokens.refresh };
     setStoredTokens(next);
     return data.access;
   } catch {
@@ -150,6 +168,11 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const tokens = getStoredTokens();
   if (tokens?.access) {
     config.headers.Authorization = `Bearer ${tokens.access}`;
+  } else if (isAdminApiUrl(config.url)) {
+    notifyAuthRequired();
+    throw new ApiRequestError("Authentication credentials were not provided.", 401, {
+      detail: "Authentication credentials were not provided.",
+    });
   }
 
   return config;
@@ -158,6 +181,10 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorBody>) => {
+    if (error instanceof ApiRequestError) {
+      return Promise.reject(error);
+    }
+
     const original = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -173,6 +200,10 @@ apiClient.interceptors.response.use(
       if (access) {
         original.headers.Authorization = `Bearer ${access}`;
         return apiClient(original);
+      }
+      if (isAdminApiUrl(original.url)) {
+        setStoredTokens(null);
+        notifyAuthRequired();
       }
     }
 
