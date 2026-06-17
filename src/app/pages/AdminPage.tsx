@@ -70,7 +70,7 @@ import {
   type SaleRecord,
 } from "@/services/admin";
 import { fetchAdminSession, loginAdmin, logoutAdmin, type AdminSession } from "@/services/adminAuth";
-import { API_BASE_URL, AUTH_REQUIRED_EVENT, ApiRequestError, resolveMediaUrl } from "@/services/api";
+import { API_BASE_URL, AUTH_REQUIRED_EVENT, ApiRequestError, getStoredTokens, resolveMediaUrl } from "@/services/api";
 import type { ApiProduct, ApiProductColorVariant, ApiReview, ApiTrackedOrder } from "@/services/types";
 import type { ApiCareerOpportunity } from "@/services/types";
 import sardarjeeLogo from "@/imports/Sardar_jee_3.jpg";
@@ -207,6 +207,13 @@ export function AdminPage() {
 
   async function checkSession() {
     setCheckingAuth(true);
+    setError("");
+    if (!getStoredTokens()?.access) {
+      setSession({ authenticated: false });
+      setCheckingAuth(false);
+      return;
+    }
+
     try {
       setSession(await fetchAdminSession());
     } catch {
@@ -239,6 +246,10 @@ export function AdminPage() {
 
   async function loadDashboardData(showLoader = true) {
     if (!session?.authenticated) return;
+    if (!getStoredTokens()?.access) {
+      resetAdminSession();
+      return;
+    }
     if (showLoader) setLoading(true);
     setError("");
     try {
@@ -255,6 +266,10 @@ export function AdminPage() {
 
   async function loadTabData(nextTab: AdminTab, force = false) {
     if (!session?.authenticated) return;
+    if (!getStoredTokens()?.access) {
+      resetAdminSession();
+      return;
+    }
     if (!force && loadedTabs[nextTab]) return;
 
     const showLoader = !loadedTabs[nextTab];
@@ -374,6 +389,12 @@ export function AdminPage() {
     }
   }, [session?.authenticated, tab]);
 
+  useEffect(() => {
+    if (!session?.authenticated) {
+      setError("");
+    }
+  }, [session?.authenticated]);
+
   async function handleLogout() {
     try {
       await logoutAdmin();
@@ -385,6 +406,12 @@ export function AdminPage() {
 
   const activeTab = useMemo(() => adminTabs.find((item) => item.id === tab) ?? adminTabs[0], [tab]);
 
+  function handleLoggedIn(nextSession: AdminSession) {
+    setError("");
+    setTab("dashboard");
+    setSession(nextSession);
+  }
+
   if (checkingAuth) {
     return (
       <AdminBackground>
@@ -394,7 +421,7 @@ export function AdminPage() {
   }
 
   if (!session?.authenticated) {
-    return <AdminLoginPage onLoggedIn={setSession} />;
+    return <AdminLoginPage onLoggedIn={handleLoggedIn} />;
   }
 
   const sidebarWidth = sidebarCollapsed ? "lg:pl-[5.5rem]" : "lg:pl-[17rem]";
@@ -763,6 +790,10 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setError("");
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
