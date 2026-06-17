@@ -1,4 +1,4 @@
-import { apiClient, apiPath, cachedGet } from "./api";
+import { apiClient, apiUrl, cachedGet } from "./api";
 import type {
   ApiHomepageBanner,
   ApiHomepageDisplaySettings,
@@ -119,10 +119,10 @@ export interface AdminPaginated<T> {
   results: T[];
 }
 
-const ADMIN_PRODUCTS_PATH = apiPath("admin/products/");
+const ADMIN_PRODUCTS_PATH = apiUrl("admin/products/");
 
 export async function fetchAdminDashboard(params?: { days?: number }): Promise<AdminDashboard> {
-  return cachedGet<AdminDashboard>("/admin/dashboard/", { params }, 10 * 1000);
+  return cachedGet<AdminDashboard>(apiUrl("admin/dashboard/"), { params }, 10 * 1000);
 }
 
 export async function fetchAdminProducts(params?: AdminPageParams): Promise<AdminPaginated<ApiProduct>> {
@@ -131,7 +131,7 @@ export async function fetchAdminProducts(params?: AdminPageParams): Promise<Admi
 
 export async function saveAdminProduct(form: FormData, id?: number): Promise<ApiProduct> {
   const { data } = await apiClient.request<ApiProduct>({
-    url: id ? apiPath(`admin/products/${id}/`) : ADMIN_PRODUCTS_PATH,
+    url: id ? apiUrl(`admin/products/${id}/`) : ADMIN_PRODUCTS_PATH,
     method: id ? "PATCH" : "POST",
     data: form,
     headers: { "Content-Type": "multipart/form-data" },
@@ -140,7 +140,7 @@ export async function saveAdminProduct(form: FormData, id?: number): Promise<Api
 }
 
 export async function deleteAdminProduct(id: number): Promise<{ success: boolean; message: string; archived: boolean }> {
-  const { data } = await apiClient.delete<{ success: boolean; message: string; archived: boolean }>(apiPath(`admin/products/${id}/`));
+  const { data } = await apiClient.delete<{ success: boolean; message: string; archived: boolean }>(apiUrl(`admin/products/${id}/`));
   return data;
 }
 
@@ -177,7 +177,7 @@ export async function fetchInventory(params?: AdminPageParams): Promise<{
       colors: string[];
       sizes: string[];
     };
-  }>("/admin/inventory/", { params });
+  }>(apiUrl("admin/inventory/"), { params });
 }
 
 export async function moveStock(payload: {
@@ -188,7 +188,7 @@ export async function moveStock(payload: {
   low_stock_threshold?: number;
   note?: string;
 }) {
-  const { data } = await apiClient.post("/admin/inventory/move/", payload);
+  const { data } = await apiClient.post(apiUrl("admin/inventory/move/"), payload);
   return data;
 }
 
@@ -196,57 +196,57 @@ export async function updateInventoryStock(
   id: number,
   payload: { stock: number } | { delta: number },
 ): Promise<InventoryStockUpdateResponse> {
-  const { data } = await apiClient.patch<InventoryStockUpdateResponse>(`/inventory/items/${id}/stock/`, payload);
+  const { data } = await apiClient.patch<InventoryStockUpdateResponse>(apiUrl(`inventory/items/${id}/stock/`), payload);
   return data;
 }
 
 export async function fetchAdminOrders(params?: AdminPageParams): Promise<AdminPaginated<ApiTrackedOrder>> {
-  return cachedGet<AdminPaginated<ApiTrackedOrder>>("/admin/orders/", { params });
+  return cachedGet<AdminPaginated<ApiTrackedOrder>>(apiUrl("admin/orders/"), { params });
 }
 
 export async function updateAdminOrder(id: number, payload: Record<string, unknown>): Promise<ApiTrackedOrder> {
-  const { data } = await apiClient.patch<ApiTrackedOrder>(`/admin/orders/${id}/`, payload);
+  const { data } = await apiClient.patch<ApiTrackedOrder>(apiUrl(`admin/orders/${id}/`), payload);
   return data;
 }
 
 export async function createPosSale(payload: Record<string, unknown>): Promise<ApiTrackedOrder> {
-  const { data } = await apiClient.post<ApiTrackedOrder>("/admin/pos/sales/", payload);
+  const { data } = await apiClient.post<ApiTrackedOrder>(apiUrl("admin/pos/sales/"), payload);
   return data;
 }
 
 export async function fetchSales(params?: AdminPageParams): Promise<AdminPaginated<SaleRecord>> {
-  return cachedGet<AdminPaginated<SaleRecord>>("/admin/sales/", { params });
+  return cachedGet<AdminPaginated<SaleRecord>>(apiUrl("admin/sales/"), { params });
 }
 
 export async function fetchSaleInvoice(idOrNumber: number | string): Promise<ApiTrackedOrder> {
   const numericId = typeof idOrNumber === "number" || /^\d+$/.test(String(idOrNumber));
   const url = numericId
-    ? `/admin/sales/${idOrNumber}/invoice/`
-    : `/admin/sales/by-number/${encodeURIComponent(String(idOrNumber))}/invoice/`;
+    ? apiUrl(`admin/sales/${idOrNumber}/invoice/`)
+    : apiUrl(`admin/sales/by-number/${encodeURIComponent(String(idOrNumber))}/invoice/`);
   const { data } = await apiClient.get<ApiTrackedOrder>(url);
   return data;
 }
 
 export async function refundSale(id: number, payload?: { reason?: string; status?: "returned" | "cancelled" }) {
-  const { data } = await apiClient.post(`/admin/sales/${id}/refund/`, payload ?? {});
+  const { data } = await apiClient.post(apiUrl(`admin/sales/${id}/refund/`), payload ?? {});
   return data;
 }
 
 export async function fetchOrderEvents(params?: AdminPageParams): Promise<AdminPaginated<InventoryMove>> {
-  return cachedGet<AdminPaginated<InventoryMove>>("/admin/order-events/", { params });
+  return cachedGet<AdminPaginated<InventoryMove>>(apiUrl("admin/order-events/"), { params });
 }
 
 export async function fetchAdminReviews(params?: AdminPageParams): Promise<AdminPaginated<ApiReview>> {
-  return cachedGet<AdminPaginated<ApiReview>>("/admin/homepage/reviews/", { params });
+  return cachedGet<AdminPaginated<ApiReview>>(apiUrl("admin/homepage/reviews/"), { params });
 }
 
 export async function fetchAdminCareers(params?: AdminPageParams): Promise<AdminPaginated<ApiCareerOpportunity>> {
-  return cachedGet<AdminPaginated<ApiCareerOpportunity>>("/admin/careers/", { params });
+  return cachedGet<AdminPaginated<ApiCareerOpportunity>>(apiUrl("admin/careers/"), { params });
 }
 
 export async function saveAdminCareer(payload: Record<string, unknown>, id?: number): Promise<ApiCareerOpportunity> {
   const { data } = await apiClient.request<ApiCareerOpportunity>({
-    url: id ? `/admin/careers/${id}/` : "/admin/careers/",
+    url: id ? apiUrl(`admin/careers/${id}/`) : apiUrl("admin/careers/"),
     method: id ? "PATCH" : "POST",
     data: payload,
   });
@@ -254,61 +254,61 @@ export async function saveAdminCareer(payload: Record<string, unknown>, id?: num
 }
 
 export async function deleteAdminCareer(id: number): Promise<void> {
-  await apiClient.delete(`/admin/careers/${id}/`);
+  await apiClient.delete(apiUrl(`admin/careers/${id}/`));
 }
 
 export async function fetchAdminHomepage(): Promise<AdminHomepage> {
-  return cachedGet<AdminHomepage>("/admin/homepage/", undefined, 60 * 1000);
+  return cachedGet<AdminHomepage>(apiUrl("admin/homepage/"), undefined, 60 * 1000);
 }
 
 export async function saveHomepageHero(form: FormData): Promise<ApiHomepageBanner> {
-  const { data } = await apiClient.post<ApiHomepageBanner>("/admin/homepage/hero/", form, {
+  const { data } = await apiClient.post<ApiHomepageBanner>(apiUrl("admin/homepage/hero/"), form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
 }
 
 export async function saveHomepageStory(form: FormData): Promise<ApiHomepageStory> {
-  const { data } = await apiClient.post<ApiHomepageStory>("/admin/homepage/story/", form, {
+  const { data } = await apiClient.post<ApiHomepageStory>(apiUrl("admin/homepage/story/"), form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
 }
 
 export async function createHomepageStat(payload: Record<string, unknown>): Promise<ApiHomepageStat> {
-  const { data } = await apiClient.post<ApiHomepageStat>("/admin/homepage/stats/", payload);
+  const { data } = await apiClient.post<ApiHomepageStat>(apiUrl("admin/homepage/stats/"), payload);
   return data;
 }
 
 export async function fetchAdminDashboardStats(): Promise<Record<string, number | string>> {
-  const { data } = await apiClient.get<Record<string, number | string>>("/admin/dashboard/stats/");
+  const { data } = await apiClient.get<Record<string, number | string>>(apiUrl("admin/dashboard/stats/"));
   return data;
 }
 
 export async function updateHomepageStat(id: number, payload: Record<string, unknown>): Promise<ApiHomepageStat> {
-  const { data } = await apiClient.patch<ApiHomepageStat>(`/admin/homepage/stats/${id}/`, payload);
+  const { data } = await apiClient.patch<ApiHomepageStat>(apiUrl(`admin/homepage/stats/${id}/`), payload);
   return data;
 }
 
 export async function deleteHomepageStat(id: number): Promise<void> {
-  await apiClient.delete(`/admin/homepage/stats/${id}/`);
+  await apiClient.delete(apiUrl(`admin/homepage/stats/${id}/`));
 }
 
 export async function saveHomepageDisplay(payload: Record<string, unknown>): Promise<ApiHomepageDisplaySettings> {
-  const { data } = await apiClient.post<ApiHomepageDisplaySettings>("/admin/homepage/display/", payload);
+  const { data } = await apiClient.post<ApiHomepageDisplaySettings>(apiUrl("admin/homepage/display/"), payload);
   return data;
 }
 
 export async function moderateHomepageReview(id: number, status: string): Promise<ApiReview> {
-  const { data } = await apiClient.patch<ApiReview>(`/admin/homepage/reviews/${id}/`, { status });
+  const { data } = await apiClient.patch<ApiReview>(apiUrl(`admin/homepage/reviews/${id}/`), { status });
   return data;
 }
 
 export async function updateAdminReview(id: number, payload: Record<string, unknown>): Promise<ApiReview> {
-  const { data } = await apiClient.patch<ApiReview>(`/admin/homepage/reviews/${id}/`, payload);
+  const { data } = await apiClient.patch<ApiReview>(apiUrl(`admin/homepage/reviews/${id}/`), payload);
   return data;
 }
 
 export async function deleteAdminReview(id: number): Promise<void> {
-  await apiClient.delete(`/admin/homepage/reviews/${id}/`);
+  await apiClient.delete(apiUrl(`admin/homepage/reviews/${id}/`));
 }

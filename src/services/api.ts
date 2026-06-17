@@ -9,7 +9,8 @@ import type { ApiErrorBody, AuthTokens } from "./types";
 function normalizeApiBaseUrl(value: string | undefined): string {
   const trimmed = value?.trim();
   const fallback = "http://localhost:8000/api/v1";
-  return (trimmed || fallback).replace(/\/+$/, "");
+  const base = (trimmed || fallback).replace(/\/+$/, "");
+  return /\/api\/v1$/i.test(base) ? base : `${base}/api/v1`;
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(
@@ -31,6 +32,10 @@ export function getApiOrigin(): string {
 
 export function apiPath(path: string): string {
   return `/${path.replace(/^\/+/, "")}`;
+}
+
+export function apiUrl(path: string): string {
+  return `${API_BASE_URL}${apiPath(path)}`;
 }
 
 export function resolveMediaUrl(path: string | null | undefined): string {

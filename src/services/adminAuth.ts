@@ -1,4 +1,4 @@
-import { apiClient, getStoredTokens, setStoredTokens } from "./api";
+import { apiClient, apiUrl, getStoredTokens, setStoredTokens } from "./api";
 import type { AuthUser } from "./types";
 
 export interface AdminSession {
@@ -17,7 +17,7 @@ export async function fetchAdminSession(): Promise<AdminSession> {
     return { authenticated: false };
   }
   try {
-    const { data } = await apiClient.get<AdminSession>("/admin/auth/session/");
+    const { data } = await apiClient.get<AdminSession>(apiUrl("admin/auth/session/"));
     return data;
   } catch {
     return { authenticated: false };
@@ -31,7 +31,7 @@ export async function loginAdmin(
 ): Promise<AdminSession> {
   const { data } = await apiClient.post<
     AdminSession & { access: string; refresh: string }
-  >("/admin/auth/login/", { email, password });
+  >(apiUrl("admin/auth/login/"), { email, password });
 
   // Store JWT tokens so all subsequent API calls include the Bearer header
   if (data.access && data.refresh) {
@@ -45,7 +45,7 @@ export async function loginAdmin(
 export async function logoutAdmin(): Promise<void> {
   const tokens = getStoredTokens();
   try {
-    await apiClient.post("/admin/auth/logout/", {
+    await apiClient.post(apiUrl("admin/auth/logout/"), {
       refresh: tokens?.refresh ?? "",
     });
   } catch {
