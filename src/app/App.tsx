@@ -49,60 +49,66 @@ function ScrollToTop() {
   return null;
 }
 
-export default function App() {
+function PublicAppShell() {
   return (
     <StoreProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Suspense fallback={<RouteLoader />}>
-            <Routes>
-              <Route path="admin/invoice/:saleId/print" element={<AdminInvoicePrintPage />} />
-              <Route path="receipt/:trackingId/print" element={<ReceiptPrintPage />} />
-              <Route element={<AppLayout />}>
-                <Route index element={<HomePage />} />
-                <Route path="shop" element={<ShopPage />} />
-                <Route path="shop/:category" element={<ShopPage />} />
-                <Route path="products" element={<ShopPage />} />
-                <Route path="products/:category" element={<ShopPage />} />
-                <Route path="men" element={<ShopPage section="men" />} />
-                <Route path="wedding" element={<ShopPage section="wedding" />} />
-                <Route path="fabrics" element={<ShopPage section="fabrics" />} />
-                <Route path="product/:id" element={<ProductDetailPage />} />
-                <Route path="cart" element={<CartPage />} />
-                <Route path="wishlist" element={<WishlistPage />} />
-                <Route path="login" element={<AuthPage />} />
-                <Route path="signup" element={<AuthPage />} />
-                <Route path="register" element={<Navigate to="/signup" replace />} />
-                <Route path="account" element={<AccountPage />} />
-                <Route path="logout" element={<LogoutPage />} />
-                <Route path="checkout" element={<CheckoutPage />} />
-                <Route path="stores" element={<StoresPage />} />
-                <Route path="search" element={<SearchPage />} />
-                <Route path="track-order" element={<OrderTrackingPage />} />
-                <Route path="about-us" element={<AboutUsPage />} />
-                <Route path="our-story" element={<OurStoryPage />} />
-                <Route path="lookbook" element={<LookbookPage />} />
-                <Route path="contact" element={<ContactPage />} />
-                <Route path="faqs" element={<FaqsPage />} />
-                <Route path="returns" element={<ReturnsPage />} />
-                <Route path="size-guide" element={<SizeGuidePage />} />
-                <Route path="press" element={<PressPage />} />
-                <Route path="careers" element={<CareersPage />} />
-                <Route path="sale" element={<SalePage />} />
-                <Route path="new-arrivals" element={<NewArrivalsPage />} />
-                <Route path="collections/shalwar-kameez" element={<CollectionPage title="Shalwar Kameez" slug="shalwar-kameez" intro="Classic men's shalwar kameez fabrics selected for daily wear, formal visits, and seasonal comfort." />} />
-                <Route path="collections/embroidered-kurta" element={<CollectionPage title="Embroidered Kurta" slug="embroidered-kurta" intro="Elegant kurta fabrics and embroidered styles for refined occasions and festive dressing." />} />
-                <Route path="collections/wedding-wear" element={<CollectionPage title="Wedding Wear" slug="wedding-wear" intro="Premium wedding-ready fabrics for formal gatherings, family events, and celebration wardrobes." />} />
-                <Route path="admin/*" element={<AdminPage />} />
-                <Route path="dashboard/*" element={<AdminPage />} />
-                <Route path="404" element={<NotFoundPage />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <AppLayout />
       </AuthProvider>
     </StoreProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
+      <Suspense fallback={<RouteLoader />}>
+        <Routes>
+          <Route path="admin/invoice/:saleId/print" element={<AdminInvoicePrintPage />} />
+          <Route path="admin/*" element={<AdminPage />} />
+          <Route path="dashboard/*" element={<AdminPage />} />
+          <Route path="receipt/:trackingId/print" element={<ReceiptPrintPage />} />
+          <Route element={<PublicAppShell />}>
+            <Route index element={<HomePage />} />
+            <Route path="shop" element={<ShopPage />} />
+            <Route path="shop/:category" element={<ShopPage />} />
+            <Route path="products" element={<ShopPage />} />
+            <Route path="products/:category" element={<ShopPage />} />
+            <Route path="men" element={<ShopPage section="men" />} />
+            <Route path="wedding" element={<ShopPage section="wedding" />} />
+            <Route path="fabrics" element={<ShopPage section="fabrics" />} />
+            <Route path="product/:id" element={<ProductDetailPage />} />
+            <Route path="cart" element={<CartPage />} />
+            <Route path="wishlist" element={<WishlistPage />} />
+            <Route path="login" element={<AuthPage />} />
+            <Route path="signup" element={<AuthPage />} />
+            <Route path="register" element={<Navigate to="/signup" replace />} />
+            <Route path="account" element={<AccountPage />} />
+            <Route path="logout" element={<LogoutPage />} />
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="stores" element={<StoresPage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="track-order" element={<OrderTrackingPage />} />
+            <Route path="about-us" element={<AboutUsPage />} />
+            <Route path="our-story" element={<OurStoryPage />} />
+            <Route path="lookbook" element={<LookbookPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="faqs" element={<FaqsPage />} />
+            <Route path="returns" element={<ReturnsPage />} />
+            <Route path="size-guide" element={<SizeGuidePage />} />
+            <Route path="press" element={<PressPage />} />
+            <Route path="careers" element={<CareersPage />} />
+            <Route path="sale" element={<SalePage />} />
+            <Route path="new-arrivals" element={<NewArrivalsPage />} />
+            <Route path="collections/shalwar-kameez" element={<CollectionPage title="Shalwar Kameez" slug="shalwar-kameez" intro="Classic men's shalwar kameez fabrics selected for daily wear, formal visits, and seasonal comfort." />} />
+            <Route path="collections/embroidered-kurta" element={<CollectionPage title="Embroidered Kurta" slug="embroidered-kurta" intro="Elegant kurta fabrics and embroidered styles for refined occasions and festive dressing." />} />
+            <Route path="collections/wedding-wear" element={<CollectionPage title="Wedding Wear" slug="wedding-wear" intro="Premium wedding-ready fabrics for formal gatherings, family events, and celebration wardrobes." />} />
+            <Route path="404" element={<NotFoundPage />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   );
 }
