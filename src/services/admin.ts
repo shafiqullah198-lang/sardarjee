@@ -1,4 +1,4 @@
-import { apiClient, apiUrl, cachedGet } from "./api";
+import { apiClient, apiUrl, cachedGet, clearCachedGets } from "./api";
 import type {
   ApiHomepageBanner,
   ApiHomepageDisplaySettings,
@@ -136,11 +136,13 @@ export async function saveAdminProduct(form: FormData, id?: number): Promise<Api
     data: form,
     headers: { "Content-Type": "multipart/form-data" },
   });
+  clearCachedGets(/products/);
   return data;
 }
 
 export async function deleteAdminProduct(id: number): Promise<{ success: boolean; message: string; archived: boolean }> {
   const { data } = await apiClient.delete<{ success: boolean; message: string; archived: boolean }>(apiUrl(`admin/products/${id}/`));
+  clearCachedGets(/products/);
   return data;
 }
 

@@ -39,12 +39,14 @@ export async function fetchProducts(
   params?: ProductListParams,
   options?: ProductRequestOptions,
 ): Promise<PaginatedResponse<ApiProduct>> {
+  const query = buildQuery(params);
   if (options?.forceRefresh) {
     clearCachedGets(PRODUCTS_PATH);
+    query._fresh = String(Date.now());
   }
   return cachedGet<PaginatedResponse<ApiProduct>>(
     PRODUCTS_PATH,
-    { params: buildQuery(params) },
+    { params: query },
     PRODUCT_CACHE_TTL_MS,
   );
 }

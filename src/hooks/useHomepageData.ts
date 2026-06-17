@@ -210,6 +210,24 @@ function showInFabricSection(product: ApiProduct): boolean {
   return Boolean(product.show_in_fabrics || product.show_in_fabric);
 }
 
+function numericValue(value: string | number | null | undefined): number {
+  const parsed = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function productHasSale(product: ApiProduct): boolean {
+  return Boolean(
+    product.is_on_sale ||
+      product.has_discount ||
+      numericValue(product.sale_price) > 0 ||
+      numericValue(product.discount_percent) > 0,
+  );
+}
+
+function productIsNewArrival(product: ApiProduct): boolean {
+  return Boolean(product.is_new_arrival || product.is_new);
+}
+
 export function mapApiProduct(
   p: ApiProduct,
   index: number,
@@ -221,13 +239,13 @@ export function mapApiProduct(
   const img = mainImgPath ? resolveMediaUrl(mainImgPath) : (fallback?.img ?? "");
   const regularPrice = p.regular_price || p.selling_price || p.base_price;
   const finalPrice = p.final_price || p.effective_price || p.sale_price || regularPrice;
-  const hasSale = Boolean(
-    p.is_on_sale &&
-    Number(p.discount_percent || 0) > 0 &&
-    parseFloat(finalPrice) < parseFloat(regularPrice),
-  );
+  const hasSale = productHasSale(p);
   const colorVariants = mapColorVariants(p.color_variants ?? []);
   const variants = mapVariants(p.variants ?? []);
+  const discountPercent = numericValue(p.discount_percent) ||
+    (numericValue(regularPrice) > 0 && numericValue(finalPrice) < numericValue(regularPrice)
+      ? ((numericValue(regularPrice) - numericValue(finalPrice)) / numericValue(regularPrice)) * 100
+      : 0);
 
   return {
     id: p.id,
@@ -246,11 +264,11 @@ export function mapApiProduct(
     ratingBreakdown: p.rating_breakdown ?? fallback?.ratingBreakdown ?? {},
     stock: p.total_stock ?? p.stock ?? fallback?.stock ?? 0,
     hasDiscount: hasSale,
-    discountPercent: Number(p.discount_percent || 0),
+    discountPercent,
     isFeatured: Boolean(p.is_featured),
     isTrending: Boolean(p.is_trending),
-    isNewArrival: Boolean(p.is_new_arrival),
-    isOnSale: Boolean(p.is_on_sale),
+    isNewArrival: productIsNewArrival(p),
+    isOnSale: productHasSale(p),
     showInMen: Boolean(p.show_in_men),
     showInWedding: Boolean(p.show_in_wedding),
     showInFabrics: showInFabricSection(p),
@@ -457,14 +475,10 @@ export function useHomepageData(): HomepageData {
 
     async function load() {
       const home = await fetchHomeContentSafe();
-      const needsFallbackProducts =
-        !home?.featured_products?.length ||
-        !home?.lookbook_products?.length ||
-        !home?.home_stats;
       const needsFallbackCategories = !home?.categories?.length;
       const [catalog, categories] =
         await Promise.all([
-          needsFallbackProducts ? fetchProductsSafeFresh({ page_size: 24 }) : Promise.resolve(null),
+          fetchProductsSafeFresh({ page_size: 100 }),
           needsFallbackCategories ? fetchCategoriesList() : Promise.resolve([]),
         ]);
 
@@ -475,11 +489,8 @@ export function useHomepageData(): HomepageData {
       const cmsCategories = home?.categories ?? [];
       const featured = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_featured));
       const trending = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_trending));
-      const newArrivals = selectFlaggedProducts(allProducts, (product) => Boolean(product.is_new_arrival));
-      const saleProducts = selectFlaggedProducts(
-        allProducts,
-        (product) => Boolean(product.is_on_sale) && Number(product.discount_percent || 0) > 0,
-      );
+      const newArrivals = selectFlaggedProducts(allProducts, productIsNewArrival);
+      const saleProducts = selectFlaggedProducts(allProducts, productHasSale);
       const latest = sortNewest(allProducts).slice(0, 8);
       const featuredSrc = cmsFeatured.length ? cmsFeatured : featured;
       const categorySrc = cmsCategories.length ? cmsCategories : categories;

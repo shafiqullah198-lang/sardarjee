@@ -90,6 +90,7 @@ export interface ApiProduct {
   is_featured: boolean;
   is_trending: boolean;
   is_new_arrival: boolean;
+  is_new?: boolean;
   show_in_men: boolean;
   show_in_wedding: boolean;
   show_in_fabrics: boolean;
