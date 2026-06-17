@@ -64,15 +64,26 @@ export function setStoredTokens(tokens: AuthTokens | null): void {
   localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
 }
 
-function isAdminApiUrl(url: string | undefined): boolean {
-  if (!url) return false;
+function getApiPathname(url: string | undefined): string {
+  if (!url) return "";
   try {
     const parsed = new URL(url, API_BASE_URL);
-    return parsed.pathname.includes("/api/v1/admin/")
-      || parsed.pathname.includes("/api/v1/inventory/items/");
+    return parsed.pathname;
   } catch {
-    return url.startsWith("/admin/") || url.startsWith("/inventory/items/");
+    return url;
   }
+}
+
+function isAdminLoginUrl(url: string | undefined): boolean {
+  return getApiPathname(url).endsWith("/admin/auth/login/");
+}
+
+function isAdminApiUrl(url: string | undefined): boolean {
+  const pathname = getApiPathname(url);
+  return pathname.includes("/api/v1/admin/")
+    || pathname.startsWith("/admin/")
+    || pathname.includes("/api/v1/inventory/items/")
+    || pathname.startsWith("/inventory/items/");
 }
 
 function notifyAuthRequired(): void {
@@ -173,7 +184,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const tokens = getStoredTokens();
   if (tokens?.access) {
     config.headers.Authorization = `Bearer ${tokens.access}`;
-  } else if (isAdminApiUrl(config.url)) {
+  } else if (isAdminApiUrl(config.url) && !isAdminLoginUrl(config.url)) {
     notifyAuthRequired();
     throw new ApiRequestError("Authentication credentials were not provided.", 401, {
       detail: "Authentication credentials were not provided.",

@@ -822,7 +822,7 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
         <form onSubmit={submit} className="mt-6 grid gap-4">
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Admin email" required className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/40 focus:border-white/35" />
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/40 focus:border-white/35" />
-          <button disabled={loading} className="rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>
+          <button type="submit" disabled={loading} className="rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>
             {loading ? "Signing in..." : "Login to Dashboard"}
           </button>
         </form>
