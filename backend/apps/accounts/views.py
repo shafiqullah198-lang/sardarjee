@@ -3,7 +3,6 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -108,18 +107,6 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-
-class AdminSessionView(APIView):
-    """GET /api/v1/admin/auth/session/ - verify admin JWT token."""
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        if not user.is_active or not (user.is_staff or user.is_superuser):
-            return Response({"authenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response({"authenticated": True, "user": UserSerializer(user).data})
 
 
 class AdminSessionLoginView(APIView):

@@ -10,20 +10,6 @@ export interface AdminSession {
   };
 }
 
-/** Check current admin session via JWT token. */
-export async function fetchAdminSession(): Promise<AdminSession> {
-  const tokens = getStoredTokens();
-  if (!tokens?.access) {
-    return { authenticated: false };
-  }
-  try {
-    const { data } = await apiClient.get<AdminSession>(apiUrl("admin/auth/session/"));
-    return data;
-  } catch {
-    return { authenticated: false };
-  }
-}
-
 /** JWT-based admin login - stores tokens on success. */
 export async function loginAdmin(
   email: string,

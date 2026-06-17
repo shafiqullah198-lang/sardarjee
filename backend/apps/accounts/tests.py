@@ -99,7 +99,7 @@ class CustomerAuthApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", response.data)
 
-    def test_customer_cannot_access_admin_session_endpoint(self):
+    def test_django_session_login_does_not_access_admin_dashboard(self):
         user = User.objects.create(
             email="customer-admin-check@example.com",
             username="customer-admin-check@example.com",
@@ -112,10 +112,10 @@ class CustomerAuthApiTests(APITestCase):
         user.save()
 
         self.client.force_login(user)
-        response = self.client.get(reverse("admin-auth-session"))
+        response = self.client.get(reverse("admin-dashboard"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_admin_session_endpoint_ignores_django_session_login(self):
+    def test_admin_django_session_login_does_not_access_admin_dashboard(self):
         admin_user = User.objects.create(
             email="session-admin@example.com",
             username="session-admin@example.com",
@@ -128,11 +128,11 @@ class CustomerAuthApiTests(APITestCase):
         admin_user.save()
 
         self.client.force_login(admin_user)
-        response = self.client.get(reverse("admin-auth-session"))
+        response = self.client.get(reverse("admin-dashboard"))
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_admin_login_returns_jwt_and_session_endpoint_accepts_bearer_token(self):
+    def test_admin_login_returns_jwt_and_bearer_token_accesses_dashboard(self):
         admin_user = User.objects.create(
             email="jwt-admin@example.com",
             username="jwt-admin@example.com",
@@ -156,11 +156,9 @@ class CustomerAuthApiTests(APITestCase):
         self.assertIn("refresh", login_response.data)
 
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.data['access']}")
-        session_response = self.client.get(reverse("admin-auth-session"))
+        dashboard_response = self.client.get(reverse("admin-dashboard"))
 
-        self.assertEqual(session_response.status_code, status.HTTP_200_OK)
-        self.assertTrue(session_response.data["authenticated"])
-        self.assertEqual(session_response.data["user"]["email"], "jwt-admin@example.com")
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
 
 
 from unittest.mock import patch

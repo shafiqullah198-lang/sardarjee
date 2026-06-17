@@ -69,7 +69,7 @@ import {
   type InventoryRow,
   type SaleRecord,
 } from "@/services/admin";
-import { fetchAdminSession, loginAdmin, logoutAdmin, type AdminSession } from "@/services/adminAuth";
+import { loginAdmin, logoutAdmin, type AdminSession } from "@/services/adminAuth";
 import { API_BASE_URL, AUTH_REQUIRED_EVENT, ApiRequestError, getStoredTokens, resolveMediaUrl } from "@/services/api";
 import type { ApiProduct, ApiProductColorVariant, ApiReview, ApiTrackedOrder } from "@/services/types";
 import type { ApiCareerOpportunity } from "@/services/types";
@@ -205,22 +205,11 @@ export function AdminPage() {
   const [topbarHeight, setTopbarHeight] = useState(120);
   const [loadedTabs, setLoadedTabs] = useState<Partial<Record<AdminTab, boolean>>>({});
 
-  async function checkSession() {
+  function initializeAdminAuth() {
     setCheckingAuth(true);
     setError("");
-    if (!getStoredTokens()?.access) {
-      setSession({ authenticated: false });
-      setCheckingAuth(false);
-      return;
-    }
-
-    try {
-      setSession(await fetchAdminSession());
-    } catch {
-      setSession({ authenticated: false });
-    } finally {
-      setCheckingAuth(false);
-    }
+    setSession({ authenticated: Boolean(getStoredTokens()?.access) });
+    setCheckingAuth(false);
   }
 
   function markTabLoaded(tabKey: AdminTab) {
@@ -365,7 +354,7 @@ export function AdminPage() {
   }
 
   useEffect(() => {
-    void checkSession();
+    initializeAdminAuth();
   }, []);
 
   useEffect(() => {
