@@ -430,6 +430,7 @@ export function AdminPage() {
           setMobileOpen(false);
         }}
       />
+      <AdminMobileNav active={tab} onTab={setTab} />
       <AdminTopbar
         title={activeTab.label}
         subtitle="Premium fabric operations, orders, inventory, and POS in one place."
@@ -441,14 +442,14 @@ export function AdminPage() {
         tab={tab}
         setTab={setTab}
       />
-      <section className={`min-h-screen min-w-0 transition-[padding] duration-300 ease-out ${sidebarWidth}`}>
-        <div className="mx-auto w-full max-w-[1680px] px-4 pb-8 sm:px-6 lg:px-6" style={{ paddingTop: topbarHeight + 24 }}>
+      <section className={`min-h-screen min-w-0 max-w-full overflow-x-hidden transition-[padding] duration-300 ease-out ${sidebarWidth}`}>
+        <div className="mx-auto w-full max-w-[1680px] px-3 pb-24 sm:px-6 lg:px-6 lg:pb-8" style={{ paddingTop: topbarHeight + 24 }}>
           {error && <AlertBanner message={error} />}
           {loading ? (
             <AdminSkeleton />
           ) : (
             <AdminContentErrorBoundary>
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-5 sm:space-y-6">
                 {tab === "dashboard" && <Dashboard dashboard={dashboard} />}
                 {tab === "products" && <Products products={products} meta={productMeta} setProducts={setProducts} setMeta={setProductMeta} reload={() => loadTabData("products", true)} />}
                 {tab === "inventory" && <Inventory records={inventory} recordMeta={inventoryMeta} setRecords={setInventory} setRecordMeta={setInventoryMeta} history={history} historyMeta={historyMeta} setHistory={setHistory} setHistoryMeta={setHistoryMeta} reload={() => loadTabData("inventory", true)} />}
@@ -469,7 +470,7 @@ export function AdminPage() {
 
 const AdminBackground = memo(function AdminBackground({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(201,160,96,0.16),transparent_30%),linear-gradient(135deg,#f8f4ec_0%,#f2e9dc_46%,#fffdf8_100%)]">
+    <main className="min-h-screen max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(201,160,96,0.16),transparent_30%),linear-gradient(135deg,#f8f4ec_0%,#f2e9dc_46%,#fffdf8_100%)]">
       {children}
     </main>
   );
@@ -500,7 +501,7 @@ const AdminSidebar = memo(function AdminSidebar({
         className={`fixed inset-0 z-30 bg-black/40 lg:hidden ${mobileOpen ? "block" : "hidden"}`}
       />
       <aside
-        className={`fixed left-0 top-0 z-40 h-screen w-72 max-w-[100vw] overflow-x-hidden overflow-y-hidden border-r border-white/15 bg-[linear-gradient(180deg,#230811_0%,#13070b_48%,#080304_100%)] text-white shadow-2xl backdrop-blur-2xl transition-all duration-300 ease-out lg:translate-x-0 ${collapsed ? "lg:w-[5.5rem]" : "lg:w-[17rem]"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed left-0 top-0 z-40 h-screen w-[18rem] max-w-[86vw] overflow-x-hidden overflow-y-hidden border-r border-white/15 bg-[linear-gradient(180deg,#230811_0%,#13070b_48%,#080304_100%)] text-white shadow-2xl backdrop-blur-2xl transition-all duration-300 ease-out lg:translate-x-0 ${collapsed ? "lg:w-[5.5rem]" : "lg:w-[17rem]"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-full min-w-0 flex-col overflow-x-hidden p-4">
         <div className={`flex items-center ${collapsed ? "lg:justify-center" : "justify-between"} gap-3 rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-3`}>
@@ -538,6 +539,26 @@ const AdminSidebar = memo(function AdminSidebar({
     </>
   );
 });
+
+function AdminMobileNav({ active, onTab }: { active: AdminTab; onTab: (tab: AdminTab) => void }) {
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-[#fffaf1]/95 px-2 py-2 shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur-2xl lg:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {adminTabs.map(({ id, short, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => onTab(id)}
+            className={`flex min-w-[4.5rem] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-[10px] font-bold ${active === id ? "text-white" : "border border-border bg-background text-foreground"}`}
+            style={{ background: active === id ? CRIMSON : undefined }}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="whitespace-nowrap">{short}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
 
 const AdminTopbar = memo(function AdminTopbar({
   title,
@@ -588,18 +609,18 @@ const AdminTopbar = memo(function AdminTopbar({
   }
 
   return (
-    <header ref={headerRef} className={`fixed left-0 right-0 top-0 z-30 border-b border-black/5 bg-[#fffaf1]/85 px-4 py-3 shadow-sm backdrop-blur-2xl transition-[left] duration-300 ease-out sm:px-6 lg:left-[17rem] ${collapsed ? "lg:left-[5.5rem]" : ""}`}>
-      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <header ref={headerRef} className={`fixed left-0 right-0 top-0 z-30 max-w-full border-b border-black/5 bg-[#fffaf1]/85 px-3 py-3 shadow-sm backdrop-blur-2xl transition-[left] duration-300 ease-out sm:px-6 lg:left-[17rem] ${collapsed ? "lg:left-[5.5rem]" : ""}`}>
+      <div className="mx-auto flex w-full max-w-[1680px] min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <button onClick={onMenu} className="rounded-2xl border border-border bg-background p-3 lg:hidden"><Menu className="h-4 w-4" /></button>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">Control Room</p>
             <h2 className="mt-1 truncate text-xl font-extrabold sm:text-2xl" style={POPPINS}>{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1 xl:flex-none">
+        <div className="-mx-1 flex min-w-0 items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+          <div className="relative min-w-[13rem] flex-1 sm:min-w-[220px] xl:flex-none">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={quickSearch} onChange={(event) => handleQuickSearch(event.target.value)} placeholder="Quick search admin..." className="w-full rounded-full border border-border bg-background py-2 pl-10 pr-4 text-xs font-semibold outline-none focus:border-[#b21f36]" />
           </div>
@@ -609,7 +630,7 @@ const AdminTopbar = memo(function AdminTopbar({
           <QuickAction label="Add Product" icon={Plus} onClick={() => setTab("products")} active={tab === "products"} />
           <QuickAction label="Open POS" icon={ShoppingCart} onClick={() => setTab("pos")} active={tab === "pos"} />
           <QuickAction label="View Orders" icon={ClipboardList} onClick={() => setTab("orders")} active={tab === "orders"} />
-          <button onClick={onRefresh} className="rounded-full border border-border bg-background px-4 py-2 text-xs font-bold transition hover:border-[#b21f36]">Refresh</button>
+          <button onClick={onRefresh} className="flex-shrink-0 rounded-full border border-border bg-background px-4 py-2 text-xs font-bold transition hover:border-[#b21f36]">Refresh</button>
         </div>
       </div>
     </header>
@@ -618,7 +639,7 @@ const AdminTopbar = memo(function AdminTopbar({
 
 function QuickAction({ label, icon: Icon, active, onClick }: { label: string; icon: ComponentType<{ className?: string }>; active?: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition ${active ? "text-white" : "border border-border bg-background text-foreground hover:border-[#b21f36]"}`} style={{ background: active ? CRIMSON : undefined }}>
+    <button onClick={onClick} className={`inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${active ? "text-white" : "border border-border bg-background text-foreground hover:border-[#b21f36]"}`} style={{ background: active ? CRIMSON : undefined }}>
       <Icon className="h-3.5 w-3.5" /> {label}
     </button>
   );
@@ -626,10 +647,10 @@ function QuickAction({ label, icon: Icon, active, onClick }: { label: string; ic
 
 function Panel({ children, title, action, className = "" }: { children: ReactNode; title: string; action?: ReactNode; className?: string }) {
   return (
-    <section className={`${CARD_GLASS} relative h-full min-h-0 overflow-visible rounded-3xl p-4 shadow-sm sm:p-5 ${className}`}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-extrabold sm:text-lg" style={POPPINS}>{title}</h2>
-        {action}
+    <section className={`${CARD_GLASS} relative h-full min-h-0 min-w-0 max-w-full overflow-hidden rounded-3xl p-3 shadow-sm sm:p-5 ${className}`}>
+      <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <h2 className="min-w-0 text-base font-extrabold sm:text-lg" style={POPPINS}>{title}</h2>
+        {action && <div className="max-w-full overflow-x-auto">{action}</div>}
       </div>
       {children}
     </section>
@@ -670,10 +691,10 @@ function paymentMethodLabel(method: string | null | undefined) {
 
 function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   return (
-    <div className="invoice-modal fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm print:static print:block print:h-auto print:min-h-0 print:bg-white print:p-0 print:backdrop-blur-0">
-      <section className={`invoice-modal-content max-h-[90vh] w-full overflow-y-auto rounded-[2rem] border border-white/25 bg-white p-5 shadow-2xl print:m-0 print:max-h-none print:min-h-0 print:w-full print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-white print:p-0 print:shadow-none sm:p-6 ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
-        <div className="mb-5 flex items-center justify-between gap-4 print:hidden">
-          <h3 className="text-xl font-extrabold" style={POPPINS}>{title}</h3>
+    <div className="invoice-modal fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden bg-black/55 p-3 backdrop-blur-sm print:static print:block print:h-auto print:min-h-0 print:bg-white print:p-0 print:backdrop-blur-0 sm:p-4">
+      <section className={`invoice-modal-content max-h-[92vh] w-full max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-[1.5rem] border border-white/25 bg-white p-4 shadow-2xl print:m-0 print:max-h-none print:min-h-0 print:w-full print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-white print:p-0 print:shadow-none sm:max-w-[calc(100vw-2rem)] sm:rounded-[2rem] sm:p-6 ${wide ? "lg:max-w-5xl" : "lg:max-w-2xl"}`}>
+        <div className="mb-5 flex min-w-0 items-center justify-between gap-4 print:hidden">
+          <h3 className="min-w-0 text-lg font-extrabold sm:text-xl" style={POPPINS}>{title}</h3>
           <button onClick={onClose} className="rounded-full border border-border p-2 transition hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
         {children}
@@ -703,7 +724,7 @@ function ConfirmModal({
         <Icon className="mb-3 h-6 w-6" />
         <p className="text-sm">{message}</p>
       </div>
-      <div className="mt-5 flex justify-end gap-3">
+      <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button onClick={onCancel} className="rounded-full border border-border px-5 py-3 text-sm font-bold">Cancel</button>
         <button onClick={onConfirm} className="rounded-full bg-rose-600 px-5 py-3 text-sm font-bold text-white">{confirmLabel}</button>
       </div>
@@ -713,7 +734,7 @@ function ConfirmModal({
 
 function EmptyState({ title, message, action }: { title: string; message: string; action?: ReactNode }) {
   return (
-    <div className="rounded-[2rem] border border-dashed border-border bg-white/55 p-8 text-center">
+    <div className="rounded-[2rem] border border-dashed border-border bg-white/55 p-5 text-center sm:p-8">
       <Sparkles className="mx-auto h-8 w-8 text-[#b88738]" />
       <h3 className="mt-3 text-lg font-extrabold" style={POPPINS}>{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{message}</p>
@@ -740,7 +761,7 @@ function PaginationControls({
   return (
     <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm font-semibold text-muted-foreground">Total records: {meta.count.toLocaleString()} · Page {meta.page} of {meta.total_pages}</p>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         <select value={meta.page_size} onChange={(event) => onPageSize(Number(event.target.value))} className="rounded-full border border-border bg-background px-3 py-2 text-xs font-bold">
           <option value={50}>50</option>
           <option value={100}>100</option>
@@ -766,7 +787,7 @@ function AlertBanner({ message }: { message: string }) {
 
 function AdminSkeleton() {
   return (
-    <div className="grid gap-4 p-4 sm:grid-cols-2 lg:p-8 xl:grid-cols-4">
+    <div className="grid min-w-0 gap-4 p-4 sm:grid-cols-2 lg:p-8 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, index) => (
         <div key={index} className="h-36 animate-pulse rounded-[2rem] bg-white/65 shadow-sm" />
       ))}
@@ -812,11 +833,11 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_50%_20%,rgba(201,160,96,0.2),transparent_34%),linear-gradient(135deg,#16070b_0%,#050505_58%,#270912_100%)] px-4 py-16 text-white">
+    <main className="flex min-h-screen max-w-full items-center justify-center overflow-x-hidden bg-[radial-gradient(circle_at_50%_20%,rgba(201,160,96,0.2),transparent_34%),linear-gradient(135deg,#16070b_0%,#050505_58%,#270912_100%)] px-3 py-8 text-white sm:px-4 sm:py-16">
       <Toaster richColors position="top-right" />
-      <section className="w-full max-w-md rounded-[2rem] border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
-        <div className="mb-6 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.35em] text-white/60">Staff Access</div>
-        <h1 className="text-3xl font-extrabold" style={POPPINS}>Admin Login</h1>
+      <section className="w-full max-w-md rounded-[1.5rem] border border-white/15 bg-white/10 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-[2rem] sm:p-8">
+        <div className="mb-6 inline-flex max-w-full rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-white/60 sm:tracking-[0.35em]">Staff Access</div>
+        <h1 className="text-2xl font-extrabold sm:text-3xl" style={POPPINS}>Admin Login</h1>
         <p className="mt-2 text-sm text-white/55">Use active Django staff or superuser credentials only.</p>
         {error && <div className="mt-5 rounded-2xl border border-red-300/40 bg-red-500/15 p-3 text-sm text-red-100">{error}</div>}
         <form onSubmit={submit} className="mt-6 grid gap-4">
@@ -866,13 +887,13 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
 
   return (
     <div className="space-y-6 lg:space-y-7">
-      <div className="grid gap-4 md:gap-5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 xl:grid-cols-4 2xl:grid-cols-7">
         {kpis.map(({ label, value, icon: Icon, trend, tone }) => (
-          <div key={label} className={`flex min-h-[132px] flex-col justify-between rounded-3xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl ${tone === "dark" ? "border-[#2a0b12] bg-[#13070b] text-white" : tone === "danger" ? "border-rose-100 bg-rose-50" : tone === "gold" ? "border-[#ead8b4] bg-[#fff7e8]" : "border-white/70 bg-white/75 backdrop-blur-xl"}`}>
+          <div key={label} className={`flex min-h-[132px] min-w-0 flex-col justify-between rounded-3xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl ${tone === "dark" ? "border-[#2a0b12] bg-[#13070b] text-white" : tone === "danger" ? "border-rose-100 bg-rose-50" : tone === "gold" ? "border-[#ead8b4] bg-[#fff7e8]" : "border-white/70 bg-white/75 backdrop-blur-xl"}`}>
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${tone === "dark" ? "text-white/50" : "text-muted-foreground"}`}>{label}</p>
-                <p className="mt-2 text-xl font-extrabold">{value}</p>
+                <p className="mt-2 break-words text-xl font-extrabold">{value}</p>
               </div>
               <div className={`rounded-2xl p-2.5 ${tone === "dark" ? "bg-white/10 text-[#d7ad62]" : "bg-[#f5dfb5] text-[#8b5a18]"}`}><Icon className="h-4 w-4" /></div>
             </div>
@@ -881,7 +902,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
         ))}
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)] 2xl:gap-6">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)] 2xl:gap-6">
         <Panel
           title="Sales Analytics"
           action={(
@@ -893,7 +914,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
             </div>
           )}
         >
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="mb-4 grid min-w-0 gap-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-[#13070b] p-4 text-white"><p className="text-xs text-white/50">Range Revenue</p><p className="mt-1 text-2xl font-extrabold">{money(chartTotal)}</p></div>
             <div className="rounded-2xl border border-border bg-background/70 p-4"><p className="text-xs text-muted-foreground">Average / Day</p><p className="mt-1 text-xl font-extrabold">{money(chartTotal / range)}</p></div>
             <div className="rounded-2xl border border-border bg-background/70 p-4"><p className="text-xs text-muted-foreground">Latest Order</p><p className="mt-1 truncate text-sm font-extrabold">{lastOrder?.number ?? "No orders yet"}</p></div>
@@ -903,7 +924,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
             <span className="ml-3 h-2.5 w-2.5 rounded-full" style={{ background: GOLD }} /> Active points
           </div>
           {view.sales_chart_data.length ? (
-            <div className="h-[18rem] sm:h-72">
+            <div className="h-[18rem] min-w-0 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={view.sales_chart_data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                   <defs>
@@ -925,7 +946,7 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
         <Panel title="Recent Activity" action={<Badge tone="gold">Live feed</Badge>}>
           <div className="space-y-3">
             {view.recent_orders.slice(0, 5).map((order) => (
-              <div key={order.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background/75 p-3">
+               <div key={order.id} className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background/75 p-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-extrabold">{order.number}</p>
                   <p className="truncate text-xs text-muted-foreground">{order.customer.name || "Customer"} · {money(order.grand_total)}</p>
@@ -938,11 +959,11 @@ function Dashboard({ dashboard }: { dashboard: AdminDashboard | null }) {
         </Panel>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)] 2xl:gap-6">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)] 2xl:gap-6">
         <Panel title="Recent Orders" action={<Badge tone="neutral">{view.recent_orders.length} latest</Badge>}><OrdersTable orders={view.recent_orders} compact /></Panel>
         <Panel title="Low Stock Alerts">
           {view.low_stock_products.length ? (
-            <div className="overflow-x-auto">
+            <div className="max-w-full overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>SKU</th><th>Stock</th></tr></thead>
                 <tbody>{view.low_stock_products.map((row) => (
@@ -1091,7 +1112,7 @@ function Products({
       />
       <Panel title="Catalog" action={<Badge tone="gold">{meta.count} records</Badge>}>
         {products.length ? (
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[1320px] text-sm">
               <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>Category</th><th>SKU</th><th>Buy Price</th><th>Sale Price</th><th>Sale</th><th>Discount</th><th>Final Price</th><th>Placement</th><th>Stock</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
               <tbody>{products.map((product) => (
@@ -1203,8 +1224,8 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
 
   return (
     <Modal title={product ? "Edit Product" : "Add Product"} onClose={onClose} wide>
-      <form onSubmit={submit} className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
-        <div>
+      <form onSubmit={submit} className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+        <div className="min-w-0">
           <div className="aspect-[4/5] overflow-hidden rounded-[2rem] border border-border bg-muted">
             {preview ? <img src={preview} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Image preview</div>}
           </div>
@@ -1213,9 +1234,9 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
             if (file) setPreview(URL.createObjectURL(file));
           }} className="mt-3 w-full rounded-2xl border border-border bg-background p-3 text-sm" />
         </div>
-        <div className="grid gap-3">
-          <input name="name" defaultValue={product?.name} required placeholder="Product name" className="rounded-2xl border border-border bg-background p-3" />
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid min-w-0 gap-3">
+          <input name="name" defaultValue={product?.name} required placeholder="Product name" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
             <input name="category" defaultValue={product?.category?.name ?? "General"} required placeholder="Category" className="rounded-2xl border border-border bg-background p-3" />
             <input name="sku" defaultValue={product ? productSku(product) : ""} placeholder="SKU" className="rounded-2xl border border-border bg-background p-3" />
             <input name="cost_price" value={costPrice} onChange={(event) => setCostPrice(event.target.value)} required type="number" min="0" step="0.01" placeholder="Buy Price" className="rounded-2xl border border-border bg-background p-3" />
@@ -1232,7 +1253,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
             </select>
           </div>
           <div className="rounded-3xl border border-border bg-secondary/40 p-4">
-            <div className="grid gap-3 sm:grid-cols-[1fr_180px_180px] sm:items-end">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,180px)_minmax(0,180px)] sm:items-end">
               <label className="rounded-2xl border border-border bg-background p-3 text-sm font-semibold">
                 <input
                   name="is_on_sale"
@@ -1274,7 +1295,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
               <p className="text-sm font-extrabold">Website Placement</p>
               <p className="text-xs text-muted-foreground">Choose every shop section where this product should appear.</p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <label className="rounded-2xl border border-border bg-background p-3 text-sm">
                 <input name="show_in_men" type="checkbox" defaultChecked={product?.show_in_men} className="mr-2" />
                 Show in Men page
@@ -1294,7 +1315,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
             </div>
           </div>
           <div className="rounded-3xl border border-border bg-secondary/40 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-extrabold">Colors / Variants</p>
                 <p className="text-xs text-muted-foreground">Stock is calculated from color rows when variants exist.</p>
@@ -1303,7 +1324,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
             </div>
             <div className="mb-5 rounded-2xl border border-border bg-background/70 p-3">
               <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Quick Colors</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 flex-wrap gap-2">
                 {QUICK_PRODUCT_COLORS.map((color) => {
                   const selected = selectedColorNames.has(color.name.toLowerCase());
                   return (
@@ -1337,7 +1358,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
                     </div>
                     <button type="button" onClick={() => removeColorRow(row.uid)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50">Remove</button>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[1fr_160px_110px_1fr]">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,160px)_minmax(0,110px)_minmax(0,1fr)]">
                     <label className="grid gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                       Color Name
                       <input value={row.color_name} onChange={(event) => updateColorRow(row.uid, { color_name: event.target.value })} placeholder="Color Name" className="rounded-xl border border-border bg-background p-2 text-sm font-normal normal-case tracking-normal text-foreground" />
@@ -1373,7 +1394,7 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
             <label className="rounded-2xl border border-border p-3 text-sm"><input name="is_trending" type="checkbox" defaultChecked={product?.is_trending} className="mr-2" /> Trending</label>
             <label className="rounded-2xl border border-border p-3 text-sm"><input name="is_new_arrival" type="checkbox" defaultChecked={product?.is_new_arrival} className="mr-2" /> New Arrival</label>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} className="rounded-full border border-border px-5 py-3 text-sm font-bold">Cancel</button>
             <button disabled={saving} className="rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>{saving ? "Saving..." : "Save Product"}</button>
           </div>
@@ -1628,25 +1649,25 @@ function Inventory({
     <div className="space-y-4">
       <Toolbar title="Inventory" search={query} setSearch={setQuery} placeholder="Search product, SKU, color, or size..." />
       <Panel title="Inventory Filters">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+        <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="active">Active Products</option>
             <option value="archived">Archived Products</option>
           </select>
-          <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="">All stock</option>
             <option value="low_stock">Low stock</option>
             <option value="out_of_stock">Out of stock</option>
           </select>
-          <select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="">By product</option>
             {filters.products.map((product) => <option key={product} value={product}>{product}</option>)}
           </select>
-          <select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="">By color</option>
             {filters.colors.map((color) => <option key={color} value={color}>{color}</option>)}
           </select>
-          <select value={sizeFilter} onChange={(event) => setSizeFilter(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={sizeFilter} onChange={(event) => setSizeFilter(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="">By size</option>
             {filters.sizes.map((size) => <option key={size} value={size}>{size}</option>)}
           </select>
@@ -1658,7 +1679,7 @@ function Inventory({
       <div className="grid gap-4">
         <Panel title="Stock Table" action={<Badge tone="gold">{recordMeta.count} records</Badge>}>
           {records.length ? (
-            <div className="overflow-x-auto">
+            <div className="max-w-full overflow-x-auto">
               <table className="w-full min-w-[1080px] text-sm">
                 <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Product</th><th>Variant</th><th>SKU</th><th>Current Stock</th><th>Low Stock Limit</th><th>Status</th><th>Quick Update</th></tr></thead>
                 <tbody>{renderInventoryRows()}</tbody>{/*
@@ -1893,23 +1914,23 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_26rem]">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       <Panel title="Product Search" action={<Badge tone="gold">{visible.length} available</Badge>}>
-        <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto]">
+        <div className="mb-5 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
           <SearchBox value={query} onChange={setQuery} placeholder="Scan/search product or SKU..." />
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="all">All categories</option>
             {categories.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </div>
         {visible.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {visible.map((product) => (
-              <button key={product.id} onClick={() => openVariantSelection(product)} className="group rounded-[2rem] border border-border bg-background p-3 text-left transition hover:-translate-y-1 hover:border-[#b21f36] hover:shadow-xl">
+              <button key={product.id} onClick={() => openVariantSelection(product)} className="group min-w-0 rounded-[2rem] border border-border bg-background p-3 text-left transition hover:-translate-y-1 hover:border-[#b21f36] hover:shadow-xl">
                 <div className="aspect-[4/3] overflow-hidden rounded-3xl bg-muted">{firstImage(product) ? <img src={firstImage(product)} alt={product.name} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>}</div>
-                <p className="mt-3 font-extrabold">{product.name}</p>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{productSku(product)}</span>
+                <p className="mt-3 truncate font-extrabold">{product.name}</p>
+                <div className="mt-2 flex min-w-0 items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate text-muted-foreground">{productSku(product)}</span>
                   <span className="font-bold">{money(product.effective_price)}</span>
                 </div>
               </button>
@@ -1941,7 +1962,7 @@ function Pos({ products, reload }: { products: ApiProduct[]; reload: () => Promi
                 </div>
                 <button onClick={() => setCart((rows) => rows.filter((row) => !(row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId)))} className="text-rose-600"><Trash2 className="h-4 w-4" /></button>
               </div>
-              <div className="mt-3 grid grid-cols-[auto_1fr] gap-2">
+              <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-[auto_minmax(0,1fr)]">
                 <div className="flex items-center gap-2">
                   <button onClick={() => setCart((rows) => rows.map((row) => row.product.id === line.product.id && row.variantId === line.variantId && row.colorVariantId === line.colorVariantId ? { ...row, qty: Math.max(1, row.qty - 1) } : row))} className="rounded-full border px-3 py-1"><ChevronLeft className="h-3 w-3" /></button>
                   <span className="w-8 text-center text-sm font-bold">{line.qty}</span>
@@ -2164,7 +2185,7 @@ function Orders({
 function OrdersTable({ orders, compact = false, onView, onStatus, onVerify, onRefund, onPrint }: { orders: ApiTrackedOrder[]; compact?: boolean; onView?: (order: ApiTrackedOrder) => void; onStatus?: (order: ApiTrackedOrder, status: string) => void; onVerify?: (order: ApiTrackedOrder) => void; onRefund?: (order: ApiTrackedOrder) => void; onPrint?: (order: ApiTrackedOrder) => void }) {
   if (!orders.length) return <EmptyState title="No website orders yet" message="Public website customer orders will appear here." />;
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full overflow-x-auto">
       <table className={`w-full text-sm ${compact ? "min-w-[520px]" : "min-w-[1180px]"}`}>
         <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Tracking</th><th>Customer</th>{!compact && <th>Products</th>}<th>Payment</th>{!compact && <th>Method</th>}<th>Status</th>{!compact && <th>Proof</th>}<th>Total</th>{!compact && <th className="text-right">Actions</th>}</tr></thead>
         <tbody>{orders.map((order) => (
@@ -2193,7 +2214,7 @@ function OrdersTable({ orders, compact = false, onView, onStatus, onVerify, onRe
 function OrderDetailModal({ order, onClose }: { order: ApiTrackedOrder; onClose: () => void }) {
   return (
     <Modal title={`Order ${order.number}`} onClose={onClose} wide>
-      <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div className="space-y-4">
           <div className="rounded-3xl bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Customer</p>
@@ -2216,7 +2237,7 @@ function OrderDetailModal({ order, onClose }: { order: ApiTrackedOrder; onClose:
           )}
         </div>
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-3xl border border-border">
+          <div className="max-w-full overflow-x-auto rounded-3xl border border-border">
             <table className="w-full text-sm">
               <thead><tr className="bg-muted/60 text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="p-3">Product</th><th>Qty</th><th>Total</th></tr></thead>
               <tbody>{(order.items ?? []).map((item) => <tr key={`${item.sku}-${item.product_name}`} className="border-t border-border"><td className="p-3 font-bold">{item.product_name}<p className="text-xs text-muted-foreground">{item.sku}</p></td><td>{item.quantity}</td><td>{money(item.line_total)}</td></tr>)}</tbody>
@@ -2306,7 +2327,7 @@ function Override({
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.7fr_1.3fr]">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
       <Panel title="Search Order">
         <SearchBox value={query} onChange={setQuery} placeholder="Order number, phone, customer..." />
         <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto pr-1">
@@ -2320,16 +2341,16 @@ function Override({
       </Panel>
       <Panel title="Safe Manual Override" action={<Badge tone="danger">Confirmation required</Badge>}>
         {selected ? (
-          <form onSubmit={submit} className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <select name="status" defaultValue={selected.status} className="rounded-2xl border border-border bg-background p-3">{orderStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-              <select name="payment_status" defaultValue={selected.payment_status} className="rounded-2xl border border-border bg-background p-3">{paymentStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-              <input name="shipping_name" defaultValue={selected.customer.name} placeholder="Customer name" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="shipping_phone" defaultValue={selected.customer.phone} placeholder="Phone" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="shipping_city" defaultValue={selected.customer.city} placeholder="City" className="rounded-2xl border border-border bg-background p-3" />
+          <form onSubmit={submit} className="grid min-w-0 gap-4">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <select name="status" defaultValue={selected.status} className="min-w-0 rounded-2xl border border-border bg-background p-3">{orderStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+              <select name="payment_status" defaultValue={selected.payment_status} className="min-w-0 rounded-2xl border border-border bg-background p-3">{paymentStatuses.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+              <input name="shipping_name" defaultValue={selected.customer.name} placeholder="Customer name" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="shipping_phone" defaultValue={selected.customer.phone} placeholder="Phone" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="shipping_city" defaultValue={selected.customer.city} placeholder="City" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             </div>
-            <textarea name="reason" required placeholder="Override reason required" className="min-h-24 rounded-2xl border border-border bg-background p-3" />
-            <button className="w-fit rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Review Override</button>
+            <textarea name="reason" required placeholder="Override reason required" className="min-h-24 min-w-0 rounded-2xl border border-border bg-background p-3" />
+            <button className="w-full rounded-full px-5 py-3 text-sm font-bold text-white sm:w-fit" style={{ background: CRIMSON }}>Review Override</button>
           </form>
         ) : <EmptyState title="No order selected" message="Select an order before making an override." />}
       </Panel>
@@ -2338,7 +2359,7 @@ function Override({
           <SearchBox value={eventSearch} onChange={setEventSearch} placeholder="Search order log, status, reason..." />
         </div>
         {events.length ? (
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Order</th><th>From</th><th>To</th><th>Reason / Note</th><th>Date</th></tr></thead>
               <tbody>{events.map((event, index) => (
@@ -2473,17 +2494,17 @@ function Sales({
         <MetricCard title="POS Sales" value={money(posRevenue)} icon={Receipt} />
       </div>
       <Panel title="Sales Records" action={<Badge tone="gold">{sales.length} rows</Badge>}>
-        <div className="mb-5 flex flex-wrap gap-3">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search invoice/customer" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
-          <input value={date} onChange={(event) => setDate(event.target.value)} type="date" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
-          <input value={payment} onChange={(event) => setPayment(event.target.value)} placeholder="Payment filter" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
-          <select value={source} onChange={(event) => setSource(event.target.value)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold"><option value="">All sources</option><option value="website">Website</option><option value="pos">POS</option></select>
+        <div className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search invoice/customer" className="min-w-0 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
+          <input value={date} onChange={(event) => setDate(event.target.value)} type="date" className="min-w-0 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
+          <input value={payment} onChange={(event) => setPayment(event.target.value)} placeholder="Payment filter" className="min-w-0 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold" />
+          <select value={source} onChange={(event) => setSource(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold"><option value="">All sources</option><option value="website">Website</option><option value="pos">POS</option></select>
           <button onClick={() => loadSales(1, meta.page_size)} className="rounded-full border border-border bg-background px-5 py-2 text-sm font-bold"><SlidersHorizontal className="mr-2 inline h-4 w-4" />Filter</button>
-          <a download="sales.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} className="rounded-full px-5 py-2 text-sm font-bold text-white" style={{ background: GOLD }}><Download className="mr-2 inline h-4 w-4" />CSV</a>
+          <a download="sales.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} className="rounded-full px-5 py-2 text-center text-sm font-bold text-white" style={{ background: GOLD }}><Download className="mr-2 inline h-4 w-4" />CSV</a>
           <button onClick={() => window.print()} className="rounded-full border border-border bg-background px-5 py-2 text-sm font-bold"><Printer className="mr-2 inline h-4 w-4" />Print/PDF</button>
         </div>
         {sales.length ? (
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[1040px] text-sm">
               <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Invoice</th><th>Source</th><th>Customer</th><th>Payment</th><th>Method</th><th>Total</th><th>Date</th><th className="text-right">Actions</th></tr></thead>
               <tbody>{sales.map((sale) => {
@@ -2614,7 +2635,7 @@ function Reviews({
         setSearch={setSearch}
         placeholder="Search name, product, or review..."
         right={(
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
             <option value="">All status</option>
             <option value="approved">Published</option>
             <option value="hidden">Hidden spam</option>
@@ -2745,7 +2766,7 @@ function CareersAdmin({
       />
       <Panel title="Posted Opportunities" action={<Badge tone="gold">{meta.count} records</Badge>}>
         {careers.length ? (
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
               <thead><tr className="text-left text-xs uppercase tracking-[0.14em] text-muted-foreground"><th className="py-3">Job</th><th>Department</th><th>Location</th><th>Type</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
               <tbody>{careers.map((job) => (
@@ -2804,17 +2825,17 @@ function CareerModal({ career, onClose, onSaved }: { career: ApiCareerOpportunit
 
   return (
     <Modal title={career ? "Edit Opportunity" : "Add Opportunity"} onClose={onClose} wide>
-      <form onSubmit={submit} className="grid gap-4">
-        <div className="grid gap-3 md:grid-cols-2">
-          <input name="title" defaultValue={career?.title} required placeholder="Job title" className="rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
-          <input name="department" defaultValue={career?.department} required placeholder="Department" className="rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
-          <input name="location" defaultValue={career?.location} required placeholder="Location" className="rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
-          <input name="job_type" defaultValue={career?.job_type} required placeholder="Job type" className="rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+      <form onSubmit={submit} className="grid min-w-0 gap-4">
+        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          <input name="title" defaultValue={career?.title} required placeholder="Job title" className="min-w-0 rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+          <input name="department" defaultValue={career?.department} required placeholder="Department" className="min-w-0 rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+          <input name="location" defaultValue={career?.location} required placeholder="Location" className="min-w-0 rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+          <input name="job_type" defaultValue={career?.job_type} required placeholder="Job type" className="min-w-0 rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
         </div>
-        <textarea name="description" defaultValue={career?.description} required placeholder="Description" rows={5} className="resize-none rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
-        <textarea name="requirements" defaultValue={career?.requirements} placeholder="Requirements" rows={5} className="resize-none rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+        <textarea name="description" defaultValue={career?.description} required placeholder="Description" rows={5} className="min-w-0 resize-none rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
+        <textarea name="requirements" defaultValue={career?.requirements} placeholder="Requirements" rows={5} className="min-w-0 resize-none rounded-2xl border border-border bg-background p-3 text-sm outline-none" />
         <label className="rounded-2xl border border-border p-3 text-sm"><input name="is_active" type="checkbox" defaultChecked={career?.is_active ?? true} className="mr-2" />Active</label>
-        <button disabled={saving} className="w-fit rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>{saving ? "Saving..." : "Save Opportunity"}</button>
+        <button disabled={saving} className="w-full rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60 sm:w-fit" style={{ background: CRIMSON }}>{saving ? "Saving..." : "Save Opportunity"}</button>
       </form>
     </Modal>
   );
@@ -2937,13 +2958,13 @@ function HomepageManagement({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SectionCard title="Hero" value={homepage?.hero?.title || "Not configured"} icon={Sparkles} onEdit={() => setModal("hero")} />
         <SectionCard title="About / Story" value={homepage?.story?.title || "Not configured"} icon={FileText} onEdit={() => setModal("story")} />
         <SectionCard title="Lookbook" value={homepage?.display_settings.is_lookbook_active ? "Real products enabled" : "Hidden"} icon={Eye} onEdit={() => setModal("display")} />
         <SectionCard title="Reviews" value={homepage?.display_settings.is_reviews_active ? "Published reviews enabled" : "Hidden"} icon={Star} onEdit={() => setModal("display")} />
       </div>
-      <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <Panel title="Live Stats Visibility" action={<button onClick={() => setModal("stat")} className="rounded-full px-4 py-2 text-xs font-bold text-white" style={{ background: CRIMSON }}><Plus className="mr-1 inline h-3.5 w-3.5" />Add Stat</button>}>
           {homepage?.stats.length ? (
             <div className="space-y-3">{homepage.stats.map((stat) => (
@@ -2958,9 +2979,9 @@ function HomepageManagement({
           ) : <EmptyState title="No live stats selected" message="Stats numbers are calculated automatically; choose which ones to show." />}
         </Panel>
         <Panel title="Reviews Moderation" action={<Badge tone="gold">{reviewMeta.count} records</Badge>}>
-          <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div className="mb-4 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <SearchBox value={reviewSearch} onChange={setReviewSearch} placeholder="Search customer, product, review..." />
-            <select value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value)} className="rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
+            <select value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value)} className="min-w-0 rounded-full border border-border bg-background px-4 py-3 text-sm font-semibold">
               <option value="">All status</option>
               <option value="approved">Published</option>
               <option value="hidden">Hidden spam</option>
@@ -2985,22 +3006,22 @@ function HomepageManagement({
       </div>
       {modal === "hero" && (
         <Modal title="Edit Hero" onClose={() => setModal(null)}>
-          <form onSubmit={submitHero} className="grid gap-3">
-            <input name="hero_media" type="file" accept="image/*,video/mp4,video/webm" className="rounded-2xl border border-border bg-background p-3" />
+          <form onSubmit={submitHero} className="grid min-w-0 gap-3">
+            <input name="hero_media" type="file" accept="image/*,video/mp4,video/webm" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             <button className="rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Save Hero</button>
           </form>
         </Modal>
       )}
       {modal === "story" && (
         <Modal title="Edit About / Story" onClose={() => setModal(null)}>
-          <form onSubmit={submitStory} className="grid gap-3">
-            <input name="title" defaultValue={homepage?.story?.title} required placeholder="Story title" className="rounded-2xl border border-border bg-background p-3" />
-            <textarea name="text" defaultValue={homepage?.story?.text} required placeholder="Story text" className="min-h-28 rounded-2xl border border-border bg-background p-3" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input name="cta_text" defaultValue={homepage?.story?.cta_text} placeholder="CTA text" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="cta_url" defaultValue={homepage?.story?.cta_url} placeholder="CTA URL" className="rounded-2xl border border-border bg-background p-3" />
+          <form onSubmit={submitStory} className="grid min-w-0 gap-3">
+            <input name="title" defaultValue={homepage?.story?.title} required placeholder="Story title" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+            <textarea name="text" defaultValue={homepage?.story?.text} required placeholder="Story text" className="min-h-28 min-w-0 rounded-2xl border border-border bg-background p-3" />
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <input name="cta_text" defaultValue={homepage?.story?.cta_text} placeholder="CTA text" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="cta_url" defaultValue={homepage?.story?.cta_url} placeholder="CTA URL" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             </div>
-            <input name="image" type="file" accept="image/*" className="rounded-2xl border border-border bg-background p-3" />
+            <input name="image" type="file" accept="image/*" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             <label className="text-sm"><input name="is_active" type="checkbox" defaultChecked={homepage?.story?.is_active ?? true} className="mr-2" />Active</label>
             <button className="rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Save Story</button>
           </form>
@@ -3008,14 +3029,14 @@ function HomepageManagement({
       )}
       {modal === "stat" && (
         <Modal title="Add Live Stat" onClose={() => setModal(null)}>
-          <form onSubmit={submitStat} className="grid gap-3">
+          <form onSubmit={submitStat} className="grid min-w-0 gap-3">
             <p className="text-sm text-muted-foreground">Admin selects visibility and label only. Numbers always come from database calculations.</p>
-            <select name="stat_type" required className="rounded-2xl border border-border bg-background p-3">{statTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input name="title" required placeholder="Display label" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="icon" placeholder="Icon label optional" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="label" placeholder="Small caption optional" className="rounded-2xl border border-border bg-background p-3" />
-              <input name="sort_order" type="number" placeholder="Sort order" className="rounded-2xl border border-border bg-background p-3" />
+            <select name="stat_type" required className="min-w-0 rounded-2xl border border-border bg-background p-3">{statTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <input name="title" required placeholder="Display label" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="icon" placeholder="Icon label optional" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="label" placeholder="Small caption optional" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+              <input name="sort_order" type="number" placeholder="Sort order" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             </div>
             <label className="text-sm"><input name="is_active" type="checkbox" defaultChecked className="mr-2" />Active</label>
             <button className="rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Add Stat</button>
@@ -3024,10 +3045,10 @@ function HomepageManagement({
       )}
       {modal === "display" && (
         <Modal title="Lookbook & Reviews Settings" onClose={() => setModal(null)}>
-          <form onSubmit={submitDisplay} className="grid gap-3">
-            <input name="lookbook_title" defaultValue={homepage?.display_settings.lookbook_title} placeholder="Lookbook title" className="rounded-2xl border border-border bg-background p-3" />
-            <input name="lookbook_limit" defaultValue={homepage?.display_settings.lookbook_limit ?? 6} type="number" min="1" max="12" className="rounded-2xl border border-border bg-background p-3" />
-            <input name="reviews_title" defaultValue={homepage?.display_settings.reviews_title} placeholder="Reviews title" className="rounded-2xl border border-border bg-background p-3" />
+          <form onSubmit={submitDisplay} className="grid min-w-0 gap-3">
+            <input name="lookbook_title" defaultValue={homepage?.display_settings.lookbook_title} placeholder="Lookbook title" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+            <input name="lookbook_limit" defaultValue={homepage?.display_settings.lookbook_limit ?? 6} type="number" min="1" max="12" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
+            <input name="reviews_title" defaultValue={homepage?.display_settings.reviews_title} placeholder="Reviews title" className="min-w-0 rounded-2xl border border-border bg-background p-3" />
             <label className="rounded-2xl border border-border p-3 text-sm"><input name="is_lookbook_active" type="checkbox" defaultChecked={homepage?.display_settings.is_lookbook_active ?? true} className="mr-2" />Show lookbook from latest active products</label>
             <label className="rounded-2xl border border-border p-3 text-sm"><input name="is_reviews_active" type="checkbox" defaultChecked={homepage?.display_settings.is_reviews_active ?? true} className="mr-2" />Show latest published real reviews</label>
             <button className="rounded-full px-5 py-3 text-sm font-bold text-white" style={{ background: CRIMSON }}>Save Settings</button>
@@ -3054,9 +3075,9 @@ function SectionCard({ title, value, icon: Icon, onEdit }: { title: string; valu
 function Toolbar({ title, search, setSearch, placeholder, right }: { title: string; search: string; setSearch: (value: string) => void; placeholder: string; right?: ReactNode }) {
   return (
     <Panel title={title}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <SearchBox value={search} onChange={setSearch} placeholder={placeholder} />
-        <div className="flex flex-wrap gap-2">{right}</div>
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap [&>*]:w-full sm:[&>*]:w-auto">{right}</div>
       </div>
     </Panel>
   );
@@ -3066,7 +3087,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
   return (
     <div className="relative min-w-0 flex-1">
       <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-full border border-border bg-background py-3 pl-11 pr-4 text-sm outline-none focus:border-[#b21f36]" />
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="w-full min-w-0 rounded-full border border-border bg-background py-3 pl-11 pr-4 text-sm outline-none focus:border-[#b21f36]" />
     </div>
   );
 }
