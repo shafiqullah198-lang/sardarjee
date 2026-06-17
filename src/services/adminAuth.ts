@@ -24,7 +24,7 @@ export async function fetchAdminSession(): Promise<AdminSession> {
   }
 }
 
-/** JWT-based admin login — stores tokens on success. */
+/** JWT-based admin login - stores tokens on success. */
 export async function loginAdmin(
   email: string,
   password: string,
@@ -49,7 +49,7 @@ export async function logoutAdmin(): Promise<void> {
       refresh: tokens?.refresh ?? "",
     });
   } catch {
-    // Best-effort — clear tokens regardless
+    // Best-effort - clear tokens regardless.
   }
   setStoredTokens(null);
 }

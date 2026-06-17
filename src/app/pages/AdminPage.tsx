@@ -765,7 +765,7 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
         } else if (loginError.status === 400) {
           setError("Wrong email or password.");
         } else if (loginError.status === 403) {
-          setError(loginError.message.toLowerCase().includes("csrf") ? "CSRF failed after automatic refresh. Check cookies/CORS settings and try again." : "This user is not staff or superuser.");
+          setError("This user is not staff or superuser.");
         } else {
           setError(loginError.message);
         }

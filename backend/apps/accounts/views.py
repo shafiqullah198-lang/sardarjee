@@ -1,10 +1,9 @@
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
-from django.utils.decorators import method_decorator
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -111,17 +110,9 @@ class AddressViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-@method_decorator(ensure_csrf_cookie, name="dispatch")
-class AdminCsrfView(APIView):
-    permission_classes = [permissions.AllowAny]
-    authentication_classes = []
-
-    def get(self, request):
-        return Response({"detail": "CSRF cookie set"})
-
-
 class AdminSessionView(APIView):
-    """GET /api/v1/admin/auth/session/ — verify admin JWT token."""
+    """GET /api/v1/admin/auth/session/ - verify admin JWT token."""
+    authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -131,9 +122,8 @@ class AdminSessionView(APIView):
         return Response({"authenticated": True, "user": UserSerializer(user).data})
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class AdminSessionLoginView(APIView):
-    """POST /api/v1/admin/auth/login/ — JWT-based admin login (csrf_exempt)."""
+    """POST /api/v1/admin/auth/login/ - JWT-based admin login."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
@@ -155,7 +145,7 @@ class AdminSessionLoginView(APIView):
 
 
 class AdminSessionLogoutView(APIView):
-    """POST /api/v1/admin/auth/logout/ — blacklist refresh token."""
+    """POST /api/v1/admin/auth/logout/ - blacklist refresh token."""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

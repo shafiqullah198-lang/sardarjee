@@ -39,23 +39,6 @@ export function resolveMediaUrl(path: string | null | undefined): string {
   return `${origin}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-
-  const cookie = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`));
-
-  if (!cookie) return null;
-  return decodeURIComponent(cookie.slice(name.length + 1));
-}
-
-function needsCsrfHeader(method: string | undefined): boolean {
-  return ["post", "put", "patch", "delete"].includes(
-    (method ?? "get").toLowerCase(),
-  );
-}
-
 export function getStoredTokens(): AuthTokens | null {
   try {
     const raw = localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -133,9 +116,7 @@ function queueTokenRefresh(): Promise<string | null> {
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
-  withCredentials: true,
-  xsrfCookieName: "csrftoken",
-  xsrfHeaderName: "X-CSRFToken",
+  withCredentials: false,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -169,13 +150,6 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const tokens = getStoredTokens();
   if (tokens?.access) {
     config.headers.Authorization = `Bearer ${tokens.access}`;
-  }
-
-  if (needsCsrfHeader(config.method)) {
-    const csrfToken = getCookie("csrftoken");
-    if (csrfToken) {
-      config.headers["X-CSRFToken"] = csrfToken;
-    }
   }
 
   return config;

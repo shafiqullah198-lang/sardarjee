@@ -115,6 +115,53 @@ class CustomerAuthApiTests(APITestCase):
         response = self.client.get(reverse("admin-auth-session"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_admin_session_endpoint_ignores_django_session_login(self):
+        admin_user = User.objects.create(
+            email="session-admin@example.com",
+            username="session-admin@example.com",
+            role=User.Roles.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+            is_active=True,
+        )
+        admin_user.set_password("StrongPass123!")
+        admin_user.save()
+
+        self.client.force_login(admin_user)
+        response = self.client.get(reverse("admin-auth-session"))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_admin_login_returns_jwt_and_session_endpoint_accepts_bearer_token(self):
+        admin_user = User.objects.create(
+            email="jwt-admin@example.com",
+            username="jwt-admin@example.com",
+            role=User.Roles.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+            is_active=True,
+        )
+        admin_user.set_password("StrongPass123!")
+        admin_user.save()
+
+        login_response = self.client.post(
+            reverse("admin-auth-login"),
+            {"email": "jwt-admin@example.com", "password": "StrongPass123!"},
+            format="json",
+        )
+
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(login_response.data["authenticated"])
+        self.assertIn("access", login_response.data)
+        self.assertIn("refresh", login_response.data)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.data['access']}")
+        session_response = self.client.get(reverse("admin-auth-session"))
+
+        self.assertEqual(session_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(session_response.data["authenticated"])
+        self.assertEqual(session_response.data["user"]["email"], "jwt-admin@example.com")
+
 
 from unittest.mock import patch
 from django.test import override_settings
@@ -224,4 +271,3 @@ class GoogleAuthApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Invalid Google token", response.data["detail"])
-

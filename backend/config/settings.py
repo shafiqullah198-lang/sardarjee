@@ -110,27 +110,19 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL", "false").lower() == "true"
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    origin
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,https://sardargfabric.com,https://www.sardargfabric.com,https://sardarjee-6rs4.vercel.app",
-    ).split(",")
-    if origin
+    "https://sardargfabric.com",
+    "https://www.sardargfabric.com",
+    "https://sardarjee-6rs4.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    origin
-    for origin in os.getenv(
-        "CSRF_TRUSTED_ORIGINS",
-        "http://localhost:5173,https://sardargfabric.com,https://www.sardargfabric.com,https://sardarjee-6rs4.vercel.app",
-    ).split(",")
-    if origin
+    "https://sardargfabric.com",
+    "https://www.sardargfabric.com",
+    "https://sardarjee-6rs4.vercel.app",
 ]
-SESSION_COOKIE_SAMESITE = "None"
-CSRF_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
