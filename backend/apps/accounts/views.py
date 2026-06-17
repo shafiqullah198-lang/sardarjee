@@ -1,7 +1,6 @@
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model, login, logout
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.contrib.auth import authenticate, get_user_model
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
@@ -122,17 +121,19 @@ class AdminCsrfView(APIView):
 
 
 class AdminSessionView(APIView):
-    permission_classes = [permissions.AllowAny]
+    """GET /api/v1/admin/auth/session/ — verify admin JWT token."""
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        if not user.is_authenticated or not user.is_active or not (user.is_staff or user.is_superuser):
+        if not user.is_active or not (user.is_staff or user.is_superuser):
             return Response({"authenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
         return Response({"authenticated": True, "user": UserSerializer(user).data})
 
 
-@method_decorator(csrf_protect, name="dispatch")
+@method_decorator(csrf_exempt, name="dispatch")
 class AdminSessionLoginView(APIView):
+    """POST /api/v1/admin/auth/login/ — JWT-based admin login (csrf_exempt)."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
@@ -144,15 +145,26 @@ class AdminSessionLoginView(APIView):
             return Response({"detail": "Invalid admin credentials."}, status=status.HTTP_400_BAD_REQUEST)
         if not user.is_active or not (user.is_staff or user.is_superuser):
             return Response({"detail": "Only active staff or superusers can access admin."}, status=status.HTTP_403_FORBIDDEN)
-        login(request, user)
-        return Response({"authenticated": True, "user": UserSerializer(user).data})
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "authenticated": True,
+            "user": UserSerializer(user).data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        })
 
 
 class AdminSessionLogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    """POST /api/v1/admin/auth/logout/ — blacklist refresh token."""
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        logout(request)
+        refresh_token = request.data.get("refresh")
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except TokenError:
+                pass
         return Response({"authenticated": False})
 
 

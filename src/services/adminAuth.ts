@@ -1,4 +1,4 @@
-import { ApiRequestError, apiClient } from "./api";
+import { apiClient, getStoredTokens, setStoredTokens } from "./api";
 import type { AuthUser } from "./types";
 
 export interface AdminSession {
@@ -10,48 +10,46 @@ export interface AdminSession {
   };
 }
 
-export async function ensureAdminCsrf(): Promise<void> {
-  await apiClient.get("/admin/auth/csrf/");
-}
-
-function isCsrfError(error: unknown): boolean {
-  return error instanceof ApiRequestError
-    && error.status === 403
-    && error.message.toLowerCase().includes("csrf");
-}
-
+/** Check current admin session via JWT token. */
 export async function fetchAdminSession(): Promise<AdminSession> {
-  const { data } = await apiClient.get<AdminSession>("/admin/auth/session/");
-  return data;
-}
-
-export async function loginAdmin(email: string, password: string): Promise<AdminSession> {
-  await ensureAdminCsrf();
+  const tokens = getStoredTokens();
+  if (!tokens?.access) {
+    return { authenticated: false };
+  }
   try {
-    const { data } = await apiClient.post<AdminSession>("/admin/auth/login/", {
-      email,
-      password,
-    });
+    const { data } = await apiClient.get<AdminSession>("/admin/auth/session/");
     return data;
-  } catch (error) {
-    if (!isCsrfError(error)) throw error;
-
-    await ensureAdminCsrf();
-    const { data } = await apiClient.post<AdminSession>("/admin/auth/login/", {
-      email,
-      password,
-    });
-    return data;
+  } catch {
+    return { authenticated: false };
   }
 }
 
+/** JWT-based admin login — stores tokens on success. */
+export async function loginAdmin(
+  email: string,
+  password: string,
+): Promise<AdminSession> {
+  const { data } = await apiClient.post<
+    AdminSession & { access: string; refresh: string }
+  >("/admin/auth/login/", { email, password });
+
+  // Store JWT tokens so all subsequent API calls include the Bearer header
+  if (data.access && data.refresh) {
+    setStoredTokens({ access: data.access, refresh: data.refresh });
+  }
+
+  return { authenticated: data.authenticated, user: data.user };
+}
+
+/** Logout: blacklist refresh token and clear stored tokens. */
 export async function logoutAdmin(): Promise<void> {
+  const tokens = getStoredTokens();
   try {
-    await apiClient.post("/admin/auth/logout/");
-  } catch (error) {
-    if (!isCsrfError(error)) throw error;
-
-    await ensureAdminCsrf();
-    await apiClient.post("/admin/auth/logout/");
+    await apiClient.post("/admin/auth/logout/", {
+      refresh: tokens?.refresh ?? "",
+    });
+  } catch {
+    // Best-effort — clear tokens regardless
   }
+  setStoredTokens(null);
 }
