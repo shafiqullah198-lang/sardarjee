@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ArrowLeft, ArrowRight, LockKeyhole } from "lucide-react";
 import sardarjeeLogo from "@/imports/Sardar_jee_3.jpg";
 import { PasswordInput } from "@/app/components/PasswordInput";
@@ -9,6 +9,7 @@ import { ApiRequestError } from "@/services/api";
 import { confirmPasswordReset } from "@/services/auth";
 
 export function NewPasswordPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -23,6 +24,12 @@ export function NewPasswordPage() {
     setOtp(sessionStorage.getItem("password_reset_otp") ?? "");
   }, []);
 
+  useEffect(() => {
+    if (!message) return undefined;
+    const timer = window.setTimeout(() => navigate(ROUTES.login, { replace: true }), 2000);
+    return () => window.clearTimeout(timer);
+  }, [message, navigate]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -30,13 +37,13 @@ export function NewPasswordPage() {
     setError("");
 
     try {
-      const response = await confirmPasswordReset({
+      await confirmPasswordReset({
         email,
         otp,
         new_password: newPassword,
         confirm_password: confirmPassword,
       });
-      setMessage(response.detail);
+      setMessage("Your password has been reset successfully. Please sign in.");
       setNewPassword("");
       setConfirmPassword("");
       sessionStorage.removeItem("password_reset_email");
@@ -68,7 +75,19 @@ export function NewPasswordPage() {
             </div>
           </div>
 
-          {!hasVerifiedOtp ? (
+          {message ? (
+            <div className="mt-7 space-y-5">
+              <p className="rounded-2xl border border-[#ead2a8] bg-[#fff8e8] px-4 py-3 text-sm font-semibold text-[#7d0020]">{message}</p>
+              <Link
+                to={ROUTES.login}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-4 text-[11px] font-extrabold uppercase tracking-[0.22em] text-white shadow-lg shadow-[#7d0020]/18 transition hover:brightness-110"
+                style={{ background: CRIMSON }}
+              >
+                Go to Sign In
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          ) : !hasVerifiedOtp ? (
             <div className="mt-7 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               Please verify your email OTP before setting a new password.
             </div>
@@ -91,8 +110,6 @@ export function NewPasswordPage() {
               </label>
 
               {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}
-              {message && <p className="rounded-2xl border border-[#ead2a8] bg-[#fff8e8] px-4 py-3 text-sm font-semibold text-[#7d0020]">{message}</p>}
-
               <button
                 type="submit"
                 disabled={submitting}
@@ -105,10 +122,12 @@ export function NewPasswordPage() {
             </form>
           )}
 
-          <Link to={ROUTES.login} className="mt-6 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.16em] transition hover:opacity-75" style={{ color: CRIMSON }}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to Sign In
-          </Link>
+          {!message && (
+            <Link to={ROUTES.login} className="mt-6 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.16em] transition hover:opacity-75" style={{ color: CRIMSON }}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </Link>
+          )}
         </div>
       </section>
     </main>
