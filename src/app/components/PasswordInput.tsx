@@ -20,7 +20,7 @@ export function PasswordInput({
       <input
         {...props}
         type={visible ? "text" : "password"}
-        className={className}
+        className={`block w-full box-border ${className ?? ""}`}
         style={{ ...style, paddingRight: "3rem" }}
       />
       <button
