@@ -50,6 +50,7 @@ declare global {
               width?: number;
             },
           ) => void;
+          prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
         };
       };
     };
@@ -160,11 +161,40 @@ export function GoogleAuthButton({ label = "Continue with Google" }: Props) {
     renderedRef.current = true;
   }, [scriptReady, handleCredential]);
 
-  /* ── 4. No-client-ID click handler ─────────────────────────────────── */
-  function handleUnconfiguredClick() {
-    setError(
-      "Google login is not configured yet. Set VITE_GOOGLE_CLIENT_ID in your .env file.",
-    );
+  /* ── 4. Direct click handler — programmatically trigger Google sign-in ── */
+  function handleGoogleClick() {
+    if (loading) return;
+    if (!isConfigured) {
+      setError(
+        "Google login is not configured yet. Set VITE_GOOGLE_CLIENT_ID in your .env file.",
+      );
+      return;
+    }
+    if (!scriptReady || !window.google?.accounts?.id) {
+      setError("Google sign-in is still loading. Please try again in a moment.");
+      return;
+    }
+    // Try to programmatically click the hidden Google iframe button first
+    const iframe = googleBtnRef.current?.querySelector("iframe");
+    if (iframe) {
+      try {
+        // The iframe's parent div is the actual clickable Google button
+        const googleDiv = googleBtnRef.current?.querySelector("div[role=button]") as HTMLElement | null;
+        if (googleDiv) {
+          googleDiv.click();
+          return;
+        }
+      } catch { /* cross-origin — fallback to prompt */ }
+    }
+    // Fallback: use Google's One Tap prompt
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // If prompt can't display (e.g. no Google account in browser),
+        // try clicking the iframe button as last resort
+        const btn = googleBtnRef.current?.querySelector("div[role=button]") as HTMLElement | null;
+        if (btn) btn.click();
+      }
+    });
   }
 
   const isConfigured = Boolean(CLIENT_ID);
@@ -187,6 +217,8 @@ export function GoogleAuthButton({ label = "Continue with Google" }: Props) {
         style={{
           position: "relative",
           width: "100%",
+          maxWidth: "400px",
+          margin: "0 auto",
           height: "52px",
           borderRadius: "9999px",
           overflow: "hidden",
@@ -227,6 +259,7 @@ export function GoogleAuthButton({ label = "Continue with Google" }: Props) {
               top: "50%",
               transform: "translateY(-50%) scaleY(1.3)",
               transformOrigin: "center center",
+              zIndex: 2,
               pointerEvents: loading ? "none" : "auto",
               /* Ensure the iframe fills the full width */
               display: "flex",
@@ -251,9 +284,9 @@ export function GoogleAuthButton({ label = "Continue with Google" }: Props) {
             background: "#ffffff",
             pointerEvents: isConfigured ? "none" : "auto",
             zIndex: 5,
-            cursor: !isConfigured ? "pointer" : "default",
+            cursor: loading || !isConfigured ? "not-allowed" : "pointer",
           }}
-          onClick={!isConfigured ? handleUnconfiguredClick : undefined}
+          onClick={!isConfigured ? handleGoogleClick : undefined}
         >
           {loading ? <SpinnerSVG /> : <GoogleLogoSVG />}
           <span

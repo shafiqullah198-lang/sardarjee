@@ -70,15 +70,27 @@ body {
 
 .checkout-input {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid #eadbd4;
   background: #fffaf3;
   color: #1a0808;
   border-radius: 999px;
-  padding: 0.875rem 1rem;
+  padding: 0 1rem;
+  min-height: 48px;
+  height: 48px;
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 48px;
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+textarea.checkout-input,
+.checkout-input[rows] {
+  height: auto;
+  min-height: 80px;
+  padding: 0.75rem 1rem;
+  line-height: 1.6;
 }
 
 .checkout-input::placeholder {
@@ -93,13 +105,17 @@ body {
 
 .auth-input {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid #eadbd4;
   background: #fffaf3;
   color: #1a0808;
   border-radius: 1rem;
-  padding: 0.95rem 1rem;
+  padding: 0 1rem;
+  min-height: 48px;
+  height: 48px;
   font-size: 0.92rem;
   font-weight: 600;
+  line-height: 48px;
   outline: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
@@ -121,6 +137,89 @@ body {
 }
 
 .dark .auth-input::placeholder {
+  color: #bfa7a2;
+}
+
+.dark .auth-input:focus {
+  border-color: #c9a060;
+  background: rgba(255, 248, 238, 0.12);
+  box-shadow: 0 0 0 4px rgba(201, 160, 96, 0.12);
+}
+
+.dark .checkout-input {
+  border-color: rgba(201, 160, 96, 0.18);
+  background: rgba(255, 248, 238, 0.08);
+  color: #f6eee8;
+}
+
+.dark .checkout-input::placeholder {
+  color: #bfa7a2;
+}
+
+.dark .checkout-input:focus {
+  border-color: #c9a060;
+  background: rgba(255, 248, 238, 0.12);
+  box-shadow: 0 0 0 4px rgba(201, 160, 96, 0.12);
+}
+
+/* ── Dark mode: Cart & Checkout page overrides ─────────────────────── */
+/* These pages use hardcoded light colors; override for dark mode. */
+
+.dark main {
+  color: var(--foreground);
+}
+
+/* Quantity input stepper in cart */
+.dark .cart-qty-stepper {
+  border-color: rgba(201, 160, 96, 0.2) !important;
+  background: rgba(255, 248, 238, 0.06) !important;
+}
+
+.dark .cart-qty-stepper span {
+  color: #f6eee8;
+}
+
+.dark .cart-qty-stepper button {
+  color: #f6eee8;
+}
+
+.dark .cart-qty-stepper button:hover {
+  background: rgba(201, 160, 96, 0.12) !important;
+}
+
+/* Quantity display text in cart */
+.dark main input[type="number"] {
+  color: #f6eee8;
+  background: transparent;
+  border-color: rgba(201, 160, 96, 0.2);
+}
+
+.dark main input[type="number"]::placeholder {
+  color: #bfa7a2;
+}
+
+/* Newsletter email input */
+.dark main input[type="email"] {
+  color: #f6eee8;
+}
+
+.dark main input[type="email"]::placeholder {
+  color: #bfa7a2;
+}
+
+/* General text input in dark mode */
+.dark main input[type="text"],
+.dark main input[type="tel"],
+.dark main input[type="password"],
+.dark main textarea,
+.dark main select {
+  color: #f6eee8;
+}
+
+.dark main input[type="text"]::placeholder,
+.dark main input[type="tel"]::placeholder,
+.dark main input[type="password"]::placeholder,
+.dark main textarea::placeholder {
   color: #bfa7a2;
 }
 

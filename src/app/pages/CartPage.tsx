@@ -66,10 +66,6 @@ export function CartPage() {
             <h1 className="mt-2 text-3xl font-extrabold text-[#1a0808] sm:text-4xl" style={POPPINS}>Shopping Cart</h1>
             <p className="mt-2 max-w-2xl text-sm text-[#72514e]">Review your premium fabrics before checkout.</p>
           </div>
-          <Link to={ROUTES.shop} className="inline-flex w-fit items-center gap-2 rounded-full border border-[#7d0020]/15 bg-white/75 px-5 py-3 text-xs font-extrabold uppercase tracking-[0.16em] text-[#7d0020] shadow-sm">
-            Continue Shopping
-            <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
 
         {cart.length ? (
@@ -213,7 +209,7 @@ function CartItemCard({
           </div>
           <div>
             <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#8a6460]">Quantity</p>
-            <div className="inline-flex h-10 items-center rounded-full border border-[#e1cfc0] bg-white">
+            <div className="cart-qty-stepper inline-flex h-10 items-center rounded-full border border-[#e1cfc0] bg-white">
               <button type="button" onClick={() => onQty(line.cartKey, line.quantity - 1)} className="flex h-10 w-10 items-center justify-center rounded-l-full hover:bg-[#fff2ea]" aria-label="Decrease quantity">
                 <Minus className="h-3.5 w-3.5" />
               </button>

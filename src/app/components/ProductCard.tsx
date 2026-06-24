@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { Heart, Star } from "lucide-react";
 import { CRIMSON, GOLD, MONO, POPPINS } from "@/app/constants";
@@ -18,6 +18,7 @@ export function ProductCard({
   badgeOverride?: string;
 }) {
   const { addToCart, toggleWishlist, isWishlisted } = useStore();
+  const navigate = useNavigate();
   const wished = isWishlisted(product.id);
   const badge = badgeOverride ?? product.badge;
   const isDiscountBadge = product.hasDiscount && /off/i.test(badge);
@@ -59,8 +60,8 @@ export function ProductCard({
         </div>
         <button
           type="button"
-          onClick={() => toggleWishlist(product.id)}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 hover:scale-110"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleWishlist(product.id); }}
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 w-8 h-8 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 hover:scale-110"
           aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
@@ -72,10 +73,19 @@ export function ProductCard({
           />
         </button>
         {showQuickAdd && (
-          <div className="absolute inset-x-2 sm:inset-x-3 bottom-2 sm:bottom-3 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 transition-all duration-300">
+          <div className="absolute inset-x-2 sm:inset-x-3 bottom-2 sm:bottom-3 z-10 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 transition-all duration-300">
             <button
               type="button"
-              onClick={() => addToCart(product)}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const variant = product.variants[0];
+                if (variant) {
+                  addToCart(product, variant, product.colorVariants[0] ?? null);
+                } else {
+                  navigate(ROUTES.product(product.id));
+                }
+              }}
               className="w-full bg-background/90 backdrop-blur-sm text-foreground text-[9px] sm:text-[10px] tracking-[0.15em] uppercase font-bold py-2 sm:py-2.5 rounded-xl hover:bg-background transition-colors"
             >
               Add to Cart

@@ -117,6 +117,39 @@ export function StoresPage() {
               </div>
             </div>
 
+            {/* ── Divider before hours ── */}
+            <div
+              className="mt-6 h-px w-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, #e7d8ca 30%, #e7d8ca 70%, transparent)",
+              }}
+            />
+
+            {/* ── Business Hours ── */}
+            <div className="mt-6 flex items-start gap-4">
+              <div
+                className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                style={{ background: "rgba(125,0,32,0.08)" }}
+              >
+                <Store className="h-4 w-4" style={{ color: CRIMSON }} />
+              </div>
+              <div>
+                <p className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#9b7a43]">
+                  Business Hours
+                </p>
+                <p className="text-[15px] font-extrabold leading-6 text-[#3d2020]" style={POPPINS}>
+                  Saturday – Thursday
+                </p>
+                <p className="text-[15px] font-bold leading-6 text-[#3d2020]">
+                  10:00 AM – 9:00 PM
+                </p>
+                <p className="mt-1 text-xs font-semibold text-[#a08070]">
+                  Closed on Friday
+                </p>
+              </div>
+            </div>
+
             {/* ── CTA buttons ── */}
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               {/* Google Maps */}
@@ -149,9 +182,12 @@ export function StoresPage() {
           </div>
         </div>
 
-        {/* ── Hours note ── */}
-        <p className="mt-8 text-center text-xs text-[#a08070]">
-          Open Saturday – Thursday &nbsp;·&nbsp; 10 AM – 9 PM
+        {/* ── Hours footer reminder ── */}
+        <p
+          className="mt-8 text-center text-sm font-bold tracking-wide"
+          style={{ color: CRIMSON }}
+        >
+          Open Saturday – Thursday · 10 AM – 9 PM
         </p>
       </div>
     </main>
