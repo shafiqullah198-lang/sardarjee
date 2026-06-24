@@ -2,14 +2,14 @@ from pathlib import Path
 import os
 from datetime import timedelta
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    load_dotenv(BASE_DIR / ".env")
 except ImportError:
     pass  # python-dotenv not installed yet; env vars set another way
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
@@ -162,14 +162,16 @@ CACHES = {
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # Email / password reset configuration
-EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "localhost")
-EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "25"))
-EMAIL_HOST_USER = os.getenv("DJANGO_EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("DJANGO_EMAIL_USE_TLS", "false").lower() == "true"
-EMAIL_USE_SSL = os.getenv("DJANGO_EMAIL_USE_SSL", "false").lower() == "true"
-DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "Sardar-G Fabrics <no-reply@sardargfabric.com>")
+SMTP_EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = SMTP_EMAIL_BACKEND
+EMAIL_HOST = os.getenv("EMAIL_HOST") or os.getenv("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT") or os.getenv("DJANGO_EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER") or os.getenv("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD") or os.getenv("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = (os.getenv("EMAIL_USE_TLS") or os.getenv("DJANGO_EMAIL_USE_TLS", "false")).lower() == "true"
+EMAIL_USE_SSL = (os.getenv("EMAIL_USE_SSL") or os.getenv("DJANGO_EMAIL_USE_SSL", "false")).lower() == "true"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL") or os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "Sardar-G Fabrics <no-reply@sardargfabric.com>")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 LOGGING = {
     "version": 1,

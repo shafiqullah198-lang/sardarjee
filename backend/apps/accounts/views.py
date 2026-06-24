@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
 from django.utils import timezone
 from datetime import timedelta
+import logging
 import random
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
@@ -30,6 +31,21 @@ from apps.accounts.serializers import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+def password_reset_email_config_error():
+    required = {
+        "EMAIL_HOST": settings.EMAIL_HOST,
+        "EMAIL_PORT": settings.EMAIL_PORT,
+        "EMAIL_HOST_USER": settings.EMAIL_HOST_USER,
+        "EMAIL_HOST_PASSWORD": settings.EMAIL_HOST_PASSWORD,
+        "DEFAULT_FROM_EMAIL": settings.DEFAULT_FROM_EMAIL,
+    }
+    missing = [name for name, value in required.items() if not value]
+    if settings.EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend":
+        missing.append("EMAIL_BACKEND=smtp")
+    return missing
 
 
 class RegisterView(generics.CreateAPIView):
@@ -121,6 +137,15 @@ class ForgotPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.get_customer()
 
+        missing_config = password_reset_email_config_error()
+        if missing_config:
+            logger.error("Password reset email SMTP configuration is missing: %s", ", ".join(missing_config))
+            if settings.DEBUG:
+                return Response(
+                    {"detail": f"Password reset email is not configured: {', '.join(missing_config)}."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
         if user:
             email = user.email.strip().lower()
             otp = f"{random.SystemRandom().randint(0, 999999):06d}"
@@ -129,24 +154,34 @@ class ForgotPasswordView(APIView):
                 user=user,
                 used_at__isnull=True,
             ).update(used_at=now, updated_at=now)
-            PasswordResetOTP.objects.create(
+            otp_record = PasswordResetOTP.objects.create(
                 user=user,
                 email=email,
                 otp_hash=make_password(otp),
                 expires_at=now + timedelta(minutes=10),
             )
-            send_mail(
-                subject="Your Sardar-G Fabrics password reset OTP",
-                message=(
-                    "We received a request to reset your Sardar-G Fabrics password.\n\n"
-                    f"Your OTP is: {otp}\n\n"
-                    "This code expires in 10 minutes.\n\n"
-                    "If you did not request this, you can ignore this email."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+            try:
+                send_mail(
+                    subject="Your Sardar-G Fabrics password reset OTP",
+                    message=(
+                        "We received a request to reset your Sardar-G Fabrics password.\n\n"
+                        f"Your OTP is: {otp}\n\n"
+                        "This code expires in 10 minutes.\n\n"
+                        "If you did not request this, you can ignore this email."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as exc:
+                logger.exception("Password reset OTP email failed for user id %s", user.pk)
+                otp_record.used_at = timezone.now()
+                otp_record.save(update_fields=["used_at", "updated_at"])
+                if settings.DEBUG:
+                    return Response(
+                        {"detail": f"Password reset email could not be sent: {exc.__class__.__name__}."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
 
         return Response({"detail": self.success_message}, status=status.HTTP_200_OK)
 
