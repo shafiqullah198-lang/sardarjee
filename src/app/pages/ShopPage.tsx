@@ -439,8 +439,8 @@ function ShopProductCard({ product, index }: { product: UiProduct; index: number
           {badges.slice(1, 3).map((b) => (
             <span
               key={b.label}
-              className="text-[8px] sm:text-[9px] tracking-[0.15em] uppercase font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white"
-              style={{ background: b.color, backdropFilter: "blur(8px)" }}
+              className="text-[8px] sm:text-[9px] tracking-[0.15em] uppercase font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full"
+              style={{ background: b.color, color: b.color === CRIMSON ? "#fff4e8" : "white", backdropFilter: "blur(8px)" }}
             >
               {b.label}
             </span>
@@ -457,7 +457,7 @@ function computeBadges(p: UiProduct): { label: string; color: string }[] {
     badges.push({ label: `${Math.round(p.discountPercent)}% OFF`, color: CRIMSON });
   }
   if (p.badge.toLowerCase().includes("new")) {
-    badges.push({ label: "NEW ARRIVAL", color: "#1a6b3f" });
+    badges.push({ label: "NEW ARRIVAL", color: CRIMSON });
   }
   if (p.badge.toLowerCase().includes("featured")) {
     badges.push({ label: "FEATURED", color: "#5b2d8e" });

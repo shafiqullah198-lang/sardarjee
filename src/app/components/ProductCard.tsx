@@ -22,6 +22,8 @@ export function ProductCard({
   const wished = isWishlisted(product.id);
   const badge = badgeOverride ?? product.badge;
   const isDiscountBadge = product.hasDiscount && /off/i.test(badge);
+  const badgeBackground = isDiscountBadge ? CRIMSON : "rgba(125,0,32,0.92)";
+  const badgeColor = isDiscountBadge ? "white" : "#fff4e8";
 
   return (
     <motion.div
@@ -49,9 +51,10 @@ export function ProductCard({
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-300 pointer-events-none" />
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
           <span
-            className="text-[8px] sm:text-[9px] tracking-[0.15em] uppercase font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white"
+            className="text-[8px] sm:text-[9px] tracking-[0.15em] uppercase font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full"
             style={{
-              background: isDiscountBadge ? CRIMSON : "rgba(0,0,0,0.45)",
+              background: badgeBackground,
+              color: badgeColor,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -86,7 +89,8 @@ export function ProductCard({
                   navigate(ROUTES.product(product.id));
                 }
               }}
-              className="w-full bg-background/90 backdrop-blur-sm text-foreground text-[9px] sm:text-[10px] tracking-[0.15em] uppercase font-bold py-2 sm:py-2.5 rounded-xl hover:bg-background transition-colors"
+              className="w-full backdrop-blur-sm text-[9px] sm:text-[10px] tracking-[0.15em] uppercase font-bold py-2 sm:py-2.5 rounded-xl transition-colors"
+              style={{ background: CRIMSON, color: "#fff4e8" }}
             >
               Add to Cart
             </button>

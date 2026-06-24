@@ -45,6 +45,7 @@ interface StoreState {
   cart: CartLine[];
   wishlistIds: Set<number>;
   cartCount: number;
+  wishlistCount: number;
   products: UiProduct[];
   productsLoading: boolean;
   productsError: string | null;
@@ -239,6 +240,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cart,
       wishlistIds,
       cartCount: cart.reduce((s, l) => s + l.quantity, 0),
+      wishlistCount: wishlistIds.size,
       products,
       productsLoading,
       productsError,

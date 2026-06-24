@@ -14,7 +14,7 @@ import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 
 export function Navbar() {
-  const { isDark, setIsDark, cartCount } = useStore();
+  const { isDark, setIsDark, cartCount, wishlistCount } = useStore();
   const { currentUser, isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mOpen, setMOpen] = useState(false);
@@ -177,10 +177,18 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => navigate(ROUTES.wishlist)}
-              className="hidden sm:flex p-2.5 rounded-full hover:bg-white/10 transition-colors"
+              className="relative hidden sm:flex p-2.5 rounded-full hover:bg-white/10 transition-colors"
               aria-label="Wishlist"
             >
               <Heart className="w-[17px] h-[17px]" style={{ color: iconColor }} />
+              {wishlistCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+                  style={{ background: CRIMSON, ...MONO }}
+                >
+                  {wishlistCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
