@@ -72,3 +72,27 @@ class EmailVerificationToken(TimeStampedModel):
     @property
     def is_expired(self) -> bool:
         return timezone.now() > self.expires_at
+
+
+class PasswordResetOTP(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_reset_otps")
+    email = models.EmailField(db_index=True)
+    otp_hash = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+    verified_at = models.DateTimeField(blank=True, null=True)
+    used_at = models.DateTimeField(blank=True, null=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["email", "created_at"]),
+            models.Index(fields=["expires_at"]),
+        ]
+
+    @property
+    def is_expired(self) -> bool:
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_usable(self) -> bool:
+        return not self.used_at and not self.is_expired

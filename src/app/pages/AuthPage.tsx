@@ -7,6 +7,7 @@ import { ROUTES } from "@/app/routes";
 import { ApiRequestError } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import { GoogleAuthButton } from "@/app/components/GoogleAuthButton";
+import { PasswordInput } from "@/app/components/PasswordInput";
 
 function splitName(fullName: string) {
   return fullName.trim().split(/\s+/).filter(Boolean).join(" ");
@@ -119,12 +120,24 @@ export function AuthPage() {
             )}
 
             <Field label="Password" icon={<LockKeyhole className="h-4 w-4" />}>
-              <input value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} type="password" className="auth-input" placeholder="Minimum 8 characters" />
+              <PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} className="auth-input" placeholder="Minimum 8 characters" />
             </Field>
+
+            {!isSignup && (
+              <div className="flex justify-end">
+                <Link
+                  to={ROUTES.resetPassword}
+                  className="text-[11px] font-extrabold uppercase tracking-[0.16em] transition hover:opacity-75"
+                  style={{ color: CRIMSON }}
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+            )}
 
             {isSignup && (
               <Field label="Confirm password" icon={<LockKeyhole className="h-4 w-4" />}>
-                <input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={8} type="password" className="auth-input" placeholder="Retype your password" />
+                <PasswordInput value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={8} className="auth-input" placeholder="Retype your password" />
               </Field>
             )}
 

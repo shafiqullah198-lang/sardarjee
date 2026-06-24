@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { CARD_GLASS, CRIMSON, GOLD, POPPINS } from "@/app/constants";
 import { InvoiceView } from "@/app/components/InvoiceView";
+import { PasswordInput } from "@/app/components/PasswordInput";
 import {
   createHomepageStat,
   createPosSale,
@@ -838,11 +839,10 @@ function AdminLoginPage({ onLoggedIn }: { onLoggedIn: (session: AdminSession) =>
       <section className="w-full max-w-md rounded-[1.5rem] border border-white/15 bg-white/10 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-[2rem] sm:p-8">
         <div className="mb-6 inline-flex max-w-full rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-white/60 sm:tracking-[0.35em]">Staff Access</div>
         <h1 className="text-2xl font-extrabold sm:text-3xl" style={POPPINS}>Admin Login</h1>
-        <p className="mt-2 text-sm text-white/55">Use active Django staff or superuser credentials only.</p>
         {error && <div className="mt-5 rounded-2xl border border-red-300/40 bg-red-500/15 p-3 text-sm text-red-100">{error}</div>}
         <form onSubmit={submit} className="mt-6 grid gap-4">
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Admin email" required className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/40 focus:border-white/35" />
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/40 focus:border-white/35" />
+          <PasswordInput value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/40 focus:border-white/35" iconClassName="text-white/70 hover:text-white hover:bg-white/10 focus:ring-white/20" />
           <button type="submit" disabled={loading} className="rounded-full px-5 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ background: CRIMSON }}>
             {loading ? "Signing in..." : "Login to Dashboard"}
           </button>

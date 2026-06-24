@@ -19,9 +19,12 @@ from apps.accounts.views import (
     AdminSessionLogoutView,
     CustomerLoginView,
     CustomerLogoutView,
+    ForgotPasswordView,
     GoogleAuthView,
     MeView,
+    OTPPasswordResetView,
     RegisterView,
+    VerifyOTPView,
 )
 from apps.catalog.views import CategoryViewSet, ProductViewSet
 from apps.cart.views import CartViewSet
@@ -135,6 +138,9 @@ urlpatterns = [
     path("api/v1/auth/me/", MeView.as_view(), name="auth-me"),
     path("api/v1/auth/logout/", CustomerLogoutView.as_view(), name="auth-logout"),
     path("api/v1/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    path("api/v1/auth/forgot-password/", ForgotPasswordView.as_view(), name="auth-forgot-password"),
+    path("api/v1/auth/verify-otp/", VerifyOTPView.as_view(), name="auth-verify-otp"),
+    path("api/v1/auth/reset-password/", OTPPasswordResetView.as_view(), name="auth-reset-password"),
     path("api/v1/admin/auth/login/", AdminSessionLoginView.as_view(), name="admin-auth-login"),
     path("api/v1/admin/auth/logout/", AdminSessionLogoutView.as_view(), name="admin-auth-logout"),
     path("api/v1/checkout/", CheckoutView.as_view(), name="checkout"),

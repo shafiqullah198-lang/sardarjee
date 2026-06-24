@@ -24,6 +24,9 @@ const ProductDetailPage = lazy(() => import("@/app/pages/ProductDetailPage").the
 const CartPage = lazy(() => import("@/app/pages/CartPage").then((module) => ({ default: module.CartPage })));
 const WishlistPage = lazy(() => import("@/app/pages/WishlistPage").then((module) => ({ default: module.WishlistPage })));
 const AuthPage = lazy(() => import("@/app/pages/AuthPage").then((module) => ({ default: module.AuthPage })));
+const ResetPasswordRequestPage = lazy(() => import("@/app/pages/ResetPasswordRequestPage").then((module) => ({ default: module.ResetPasswordRequestPage })));
+const VerifyOTPPage = lazy(() => import("@/app/pages/VerifyOTPPage").then((module) => ({ default: module.VerifyOTPPage })));
+const NewPasswordPage = lazy(() => import("@/app/pages/NewPasswordPage").then((module) => ({ default: module.NewPasswordPage })));
 const AccountPage = lazy(() => import("@/app/pages/AccountPage").then((module) => ({ default: module.AccountPage })));
 const CheckoutPage = lazy(() => import("@/app/pages/CheckoutPage").then((module) => ({ default: module.CheckoutPage })));
 const LogoutPage = lazy(() => import("@/app/pages/LogoutPage").then((module) => ({ default: module.LogoutPage })));
@@ -84,6 +87,9 @@ export default function App() {
             <Route path="login" element={<AuthPage />} />
             <Route path="signup" element={<AuthPage />} />
             <Route path="register" element={<Navigate to="/signup" replace />} />
+            <Route path="reset-password" element={<ResetPasswordRequestPage />} />
+            <Route path="reset-password/otp" element={<VerifyOTPPage />} />
+            <Route path="reset-password/new" element={<NewPasswordPage />} />
             <Route path="account" element={<AccountPage />} />
             <Route path="logout" element={<LogoutPage />} />
             <Route path="checkout" element={<CheckoutPage />} />

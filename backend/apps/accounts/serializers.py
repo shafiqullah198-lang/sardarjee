@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import check_password
+from django.utils import timezone
 from rest_framework import serializers
 
-from apps.accounts.models import Address, UserProfile
+from apps.accounts.models import Address, PasswordResetOTP, UserProfile
 
 User = get_user_model()
 
@@ -119,3 +121,84 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = "__all__"
         read_only_fields = ("user",)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def get_customer(self):
+        email = self.validated_data["email"].strip().lower()
+        return User.objects.filter(
+            email__iexact=email,
+            is_active=True,
+            is_staff=False,
+            is_superuser=False,
+        ).first()
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(min_length=6, max_length=6)
+
+    default_error_messages = {
+        "invalid_otp": "Invalid or expired OTP.",
+    }
+
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("OTP must be 6 digits.")
+        return value
+
+    def validate(self, attrs):
+        otp_record = self._get_otp_record(attrs["email"], attrs["otp"])
+        if not otp_record:
+            raise serializers.ValidationError({"otp": self.error_messages["invalid_otp"]})
+        attrs["otp_record"] = otp_record
+        return attrs
+
+    def _get_otp_record(self, email, otp):
+        email = email.strip().lower()
+        candidates = PasswordResetOTP.objects.filter(
+            email__iexact=email,
+            used_at__isnull=True,
+            expires_at__gt=timezone.now(),
+            attempts__lt=5,
+        ).select_related("user").order_by("-created_at")
+
+        for record in candidates[:3]:
+            if check_password(otp, record.otp_hash):
+                return record
+            record.attempts += 1
+            record.save(update_fields=["attempts", "updated_at"])
+        return None
+
+    def save(self, **kwargs):
+        otp_record = self.validated_data["otp_record"]
+        if not otp_record.verified_at:
+            otp_record.verified_at = timezone.now()
+            otp_record.save(update_fields=["verified_at", "updated_at"])
+        return otp_record
+
+
+class OTPPasswordResetSerializer(VerifyOTPSerializer):
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return super().validate(attrs)
+
+    def save(self, **kwargs):
+        otp_record = self.validated_data["otp_record"]
+        user = otp_record.user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password", "updated_at"])
+        otp_record.used_at = timezone.now()
+        otp_record.verified_at = otp_record.verified_at or otp_record.used_at
+        otp_record.save(update_fields=["used_at", "verified_at", "updated_at"])
+        return user

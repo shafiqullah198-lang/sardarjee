@@ -14,6 +14,13 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface PasswordResetConfirmPayload {
+  email: string;
+  otp: string;
+  new_password: string;
+  confirm_password: string;
+}
+
 export async function register(payload: RegisterPayload): Promise<AuthUser> {
   const { data } = await apiClient.post<AuthUser>("/auth/register/", payload);
   return data;
@@ -28,6 +35,21 @@ export async function login(payload: LoginPayload): Promise<AuthTokens> {
 export async function googleLogin(idToken: string): Promise<AuthTokens> {
   const { data } = await apiClient.post<AuthTokens>("/auth/google/", { id_token: idToken });
   setStoredTokens(data);
+  return data;
+}
+
+export async function requestPasswordReset(email: string): Promise<{ detail: string }> {
+  const { data } = await apiClient.post<{ detail: string }>("/auth/forgot-password/", { email });
+  return data;
+}
+
+export async function verifyPasswordResetOtp(email: string, otp: string): Promise<{ detail: string }> {
+  const { data } = await apiClient.post<{ detail: string }>("/auth/verify-otp/", { email, otp });
+  return data;
+}
+
+export async function confirmPasswordReset(payload: PasswordResetConfirmPayload): Promise<{ detail: string }> {
+  const { data } = await apiClient.post<{ detail: string }>("/auth/reset-password/", payload);
   return data;
 }
 

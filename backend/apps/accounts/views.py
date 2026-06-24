@@ -1,5 +1,10 @@
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.utils import timezone
+from datetime import timedelta
+import random
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,8 +19,15 @@ except ImportError:
     google_id_token = None
     google_requests = None
 
-from apps.accounts.models import Address, UserProfile
-from apps.accounts.serializers import AddressSerializer, RegisterSerializer, UserSerializer
+from apps.accounts.models import Address, PasswordResetOTP, UserProfile
+from apps.accounts.serializers import (
+    AddressSerializer,
+    ForgotPasswordSerializer,
+    OTPPasswordResetSerializer,
+    RegisterSerializer,
+    UserSerializer,
+    VerifyOTPSerializer,
+)
 
 User = get_user_model()
 
@@ -96,6 +108,69 @@ class CustomerLogoutView(APIView):
             except TokenError:
                 pass
         return Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    success_message = "If an account exists for that email, an OTP has been sent."
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.get_customer()
+
+        if user:
+            email = user.email.strip().lower()
+            otp = f"{random.SystemRandom().randint(0, 999999):06d}"
+            now = timezone.now()
+            PasswordResetOTP.objects.filter(
+                user=user,
+                used_at__isnull=True,
+            ).update(used_at=now, updated_at=now)
+            PasswordResetOTP.objects.create(
+                user=user,
+                email=email,
+                otp_hash=make_password(otp),
+                expires_at=now + timedelta(minutes=10),
+            )
+            send_mail(
+                subject="Your Sardar-G Fabrics password reset OTP",
+                message=(
+                    "We received a request to reset your Sardar-G Fabrics password.\n\n"
+                    f"Your OTP is: {otp}\n\n"
+                    "This code expires in 10 minutes.\n\n"
+                    "If you did not request this, you can ignore this email."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+
+        return Response({"detail": self.success_message}, status=status.HTTP_200_OK)
+
+
+class VerifyOTPView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "OTP verified."}, status=status.HTTP_200_OK)
+
+
+class OTPPasswordResetView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = OTPPasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Your password has been reset. You can sign in now."}, status=status.HTTP_200_OK)
 
 
 class AddressViewSet(viewsets.ModelViewSet):
