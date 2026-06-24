@@ -1190,6 +1190,10 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
     setColorRows((rows) => rows.filter((row) => row.uid !== uid));
   }
 
+  function colorInputValue(value: string) {
+    return /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000";
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -1358,25 +1362,38 @@ function ProductModal({ product, onClose, onSaved }: { product: ApiProduct | nul
                     </div>
                     <button type="button" onClick={() => removeColorRow(row.uid)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50">Remove</button>
                   </div>
-                  <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,160px)_minmax(0,110px)_minmax(0,1fr)]">
+                  <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(220px,0.9fr)_minmax(110px,0.45fr)_minmax(190px,1fr)] xl:items-end">
                     <label className="grid gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                       Color Name
-                      <input value={row.color_name} onChange={(event) => updateColorRow(row.uid, { color_name: event.target.value })} placeholder="Color Name" className="rounded-xl border border-border bg-background p-2 text-sm font-normal normal-case tracking-normal text-foreground" />
+                      <input value={row.color_name} onChange={(event) => updateColorRow(row.uid, { color_name: event.target.value })} placeholder="Color Name" className="h-12 rounded-xl border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground" />
                     </label>
                     <label className="grid gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                      Hex / Picker
-                      <div className="flex gap-2">
-                        <input type="color" value={row.color_hex || "#000000"} onChange={(event) => updateColorRow(row.uid, { color_hex: event.target.value })} className="h-10 w-12 rounded-xl border border-border bg-background p-1" aria-label={`${row.color_name || "Color"} picker`} />
-                        <input value={row.color_hex} onChange={(event) => updateColorRow(row.uid, { color_hex: event.target.value })} placeholder="#000000" className="min-w-0 flex-1 rounded-xl border border-border bg-background p-2 text-sm font-normal normal-case tracking-normal text-foreground" />
+                      Color Picker
+                      <div className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)] gap-2">
+                        <input
+                          type="color"
+                          value={colorInputValue(row.color_hex || "")}
+                          onChange={(event) => updateColorRow(row.uid, { color_hex: event.target.value })}
+                          className="h-12 w-14 cursor-pointer rounded-xl border border-border bg-background p-1 shadow-sm"
+                          aria-label={`${row.color_name || "Custom color"} picker`}
+                          title="Pick color"
+                        />
+                        <input
+                          value={row.color_hex}
+                          onChange={(event) => updateColorRow(row.uid, { color_hex: event.target.value })}
+                          placeholder="#000000"
+                          className="min-w-0 rounded-xl border border-border bg-background px-3 text-sm font-normal uppercase tracking-normal text-foreground"
+                          aria-label={`${row.color_name || "Custom color"} hex value`}
+                        />
                       </div>
                     </label>
                     <label className="grid gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                       Stock
-                      <input value={row.stock} onChange={(event) => updateColorRow(row.uid, { stock: Number(event.target.value || 0) })} type="number" min="0" placeholder="Stock" className="rounded-xl border border-border bg-background p-2 text-sm font-normal normal-case tracking-normal text-foreground" />
+                      <input value={row.stock} onChange={(event) => updateColorRow(row.uid, { stock: Number(event.target.value || 0) })} type="number" min="0" placeholder="Stock" className="h-12 rounded-xl border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground" />
                     </label>
                     <label className="grid gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                       Optional Image
-                      <input name={`color_variant_image_${row.uid}`} type="file" accept="image/*" className="rounded-xl border border-border bg-background p-2 text-xs font-normal normal-case tracking-normal text-foreground" />
+                      <input name={`color_variant_image_${row.uid}`} type="file" accept="image/*" className="min-h-12 rounded-xl border border-border bg-background p-2 text-xs font-normal normal-case tracking-normal text-foreground file:mr-3 file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-foreground" />
                     </label>
                   </div>
                 </div>
