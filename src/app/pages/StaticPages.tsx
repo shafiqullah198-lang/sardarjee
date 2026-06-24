@@ -11,7 +11,7 @@ import { fetchCareerOpportunities } from "@/services/cms";
 import type { ApiCareerOpportunity } from "@/services/types";
 
 const PHONE = "0315-9457186";
-const PHONE_HREF = "tel:03159457186";
+const PHONE_HREF = "tel:+923159457186";
 const ADDRESS = "Shop # G-5, Malikabad Shopping Mall, Rehmanabad Chowk, Murree Road, Rawalpindi";
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
 
@@ -32,7 +32,7 @@ function PageShell({ eyebrow, title, intro, children }: { eyebrow: string; title
 
 function InfoCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`border border-border bg-[var(--card-bg)] text-[var(--text-main)] shadow-xl shadow-black/5 backdrop-blur-2xl dark:shadow-black/40 ${className}`}>
+    <div className={`border border-border bg-[var(--card-bg)] text-[var(--text-main)] shadow-lg shadow-[#7d0020]/8 backdrop-blur-2xl dark:shadow-none ${className}`}>
       {children}
     </div>
   );
@@ -88,7 +88,7 @@ export function LookbookPage() {
       ) : products.length ? (
         <div className="grid auto-rows-[240px] gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[280px]">
           {products.slice(0, 6).map((product, index) => (
-            <Link key={product.id} to={ROUTES.product(product.id)} className={`group overflow-hidden rounded-3xl bg-muted shadow-xl ${index === 0 ? "lg:row-span-2" : ""}`}>
+            <Link key={product.id} to={ROUTES.product(product.id)} className={`group overflow-hidden rounded-3xl bg-muted shadow-lg shadow-[#7d0020]/8 ${index === 0 ? "lg:row-span-2" : ""}`}>
               <img src={product.img} alt={product.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
             </Link>
           ))}

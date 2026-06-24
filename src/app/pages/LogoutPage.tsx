@@ -20,7 +20,7 @@ export function LogoutPage() {
 
   return (
     <main className="min-h-[50vh] px-4 py-16">
-      <div className="mx-auto max-w-xl rounded-[2rem] border border-[#e4d5c4] bg-white/88 p-8 text-center shadow-xl">
+      <div className="mx-auto max-w-xl rounded-[2rem] border border-[#e4d5c4] bg-[#fffaf3]/90 p-8 text-center shadow-xl shadow-[#7d0020]/8">
         <p className="text-sm font-semibold text-[#72514e]">Signing you out...</p>
       </div>
     </main>

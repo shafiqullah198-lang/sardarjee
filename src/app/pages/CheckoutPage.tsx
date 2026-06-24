@@ -104,7 +104,7 @@ export function CheckoutPage() {
   if (cart.length === 0 && !done) {
     return (
       <main className="min-h-[70vh] bg-[linear-gradient(135deg,#fff8ee_0%,#f7efe3_52%,#fffdf8_100%)] px-4 py-16 text-center">
-        <div className="mx-auto max-w-md rounded-[1.75rem] border border-[#eadbd4] bg-white/86 p-8 shadow-xl shadow-[#7d0020]/8">
+        <div className="mx-auto max-w-md rounded-[1.75rem] border border-[#eadbd4] bg-[#fffaf3]/90 p-8 shadow-xl shadow-[#7d0020]/8">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#fff2d8] text-[#7d0020]">
             <ShoppingBag className="h-7 w-7" />
           </div>
@@ -156,7 +156,7 @@ export function CheckoutPage() {
   if (done) {
     return (
       <main className="min-h-[72vh] bg-[radial-gradient(circle_at_top_left,rgba(201,160,96,0.18),transparent_32%),linear-gradient(135deg,#fff8ee_0%,#f7efe3_52%,#fffdf8_100%)] px-4 py-16">
-        <section className="mx-auto max-w-xl rounded-[2rem] border border-[#e1cfc0] bg-white/88 p-8 text-center shadow-2xl shadow-[#7d0020]/10 sm:p-10">
+        <section className="mx-auto max-w-xl rounded-[2rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-8 text-center shadow-xl shadow-[#7d0020]/10 sm:p-10">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-700">
             <BadgeCheck className="h-8 w-8" />
           </div>
@@ -195,7 +195,7 @@ export function CheckoutPage() {
             <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl" style={POPPINS}>Complete Your Order</h1>
             <p className="mt-2 max-w-2xl text-sm text-[#72514e]">Confirm delivery details and choose a payment method.</p>
           </div>
-          <Link to={ROUTES.cart} className="inline-flex w-fit items-center gap-2 rounded-full border border-[#7d0020]/15 bg-white/75 px-5 py-3 text-xs font-extrabold uppercase tracking-[0.16em] text-[#7d0020] shadow-sm">
+          <Link to={ROUTES.cart} className="inline-flex w-fit items-center gap-2 rounded-full border border-[#7d0020]/15 bg-[#fff8ee] px-5 py-3 text-xs font-extrabold uppercase tracking-[0.16em] text-[#7d0020] shadow-sm shadow-[#7d0020]/8">
             Back to Cart
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -203,7 +203,7 @@ export function CheckoutPage() {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-start">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/88 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
+            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#fff2d8] text-[#7d0020]">
                   <Building2 className="h-5 w-5" />
@@ -233,7 +233,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/88 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
+            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
               <h2 className="font-extrabold" style={POPPINS}>Payment Method</h2>
               <p className="mt-1 text-xs font-semibold text-[#72514e]">Online transfer orders stay pending payment until admin confirms.</p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -245,7 +245,7 @@ export function CheckoutPage() {
                       key={option.value}
                       type="button"
                       onClick={() => setPaymentMethod(option.value)}
-                      className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[#7d0020] bg-[#fff2ea] shadow-md" : "border-[#eadbd4] bg-white hover:border-[#c9a060]"}`}
+                      className={`rounded-2xl border p-4 text-left transition ${selected ? "border-[#7d0020] bg-[#fff2ea] shadow-md shadow-[#7d0020]/10" : "border-[#eadbd4] bg-[#fffdf8] hover:border-[#c9a060]"}`}
                     >
                       <div className="flex items-start gap-3">
                         <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${selected ? "bg-[#7d0020] text-white" : "bg-[#fff2d8] text-[#7d0020]"}`}>
@@ -272,7 +272,7 @@ export function CheckoutPage() {
                       </li>
                     ))}
                   </ul>
-                  <label className="mt-4 block rounded-2xl border border-dashed border-[#c9a060] bg-white/70 p-4 text-sm font-bold text-[#5f4642]">
+                  <label className="mt-4 block rounded-2xl border border-dashed border-[#c9a060] bg-[#fffdf8] p-4 text-sm font-bold text-[#5f4642]">
                     Upload Payment Screenshot
                     <input type="file" accept="image/*" onChange={(event) => setPaymentProof(event.target.files?.[0] ?? null)} className="mt-2 block w-full text-xs font-semibold" />
                     {paymentProof && <span className="mt-2 block text-xs text-[#7d0020]">{paymentProof.name}</span>}
@@ -325,7 +325,7 @@ function OrderSummary({
   grandTotal: number;
 }) {
   return (
-    <aside className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/90 p-5 shadow-xl shadow-[#7d0020]/8 lg:sticky lg:top-28">
+    <aside className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 lg:sticky lg:top-28">
       <div className="mb-5 flex items-center justify-between gap-4 border-b border-[#eadbd4] pb-5">
         <div>
           <h2 className="font-extrabold" style={POPPINS}>Order Summary</h2>

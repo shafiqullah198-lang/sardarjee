@@ -4,9 +4,9 @@
   --font-size: 16px;
   --background: #FDF8F5;
   --foreground: #1A0808;
-  --card: #FFFFFF;
+  --card: #FFF8EE;
   --card-foreground: #1A0808;
-  --popover: #FFFFFF;
+  --popover: #FFF8EE;
   --popover-foreground: #1A0808;
   --primary: #7D0020;
   --primary-foreground: #FFFFFF;
@@ -40,7 +40,7 @@
   --sidebar-border: rgba(26, 8, 8, 0.08);
   --sidebar-ring: #7D0020;
   --page-bg: #FDF8F5;
-  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 250, 243, 0.9);
   --text-main: #1A0808;
   --text-muted: #72514E;
   --heading-color: #1A0808;
@@ -106,8 +106,8 @@ textarea.checkout-input,
 .auth-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #eadbd4;
-  background: #fffaf3;
+  border: 1.5px solid #d8b9a8;
+  background: #fff8ee;
   color: #1a0808;
   border-radius: 1rem;
   padding: 0 1rem;
@@ -121,18 +121,18 @@ textarea.checkout-input,
 }
 
 .auth-input::placeholder {
-  color: #9a7a75;
+  color: #8a6460;
 }
 
 .auth-input:focus {
   border-color: #7d0020;
-  background: #ffffff;
+  background: #fffdf8;
   box-shadow: 0 0 0 4px rgba(125, 0, 32, 0.08);
 }
 
 .dark .auth-input {
-  border-color: rgba(201, 160, 96, 0.18);
-  background: rgba(255, 248, 238, 0.08);
+  border-color: rgba(201, 160, 96, 0.42);
+  background: rgba(255, 248, 238, 0.12);
   color: #f6eee8;
 }
 
@@ -142,7 +142,7 @@ textarea.checkout-input,
 
 .dark .auth-input:focus {
   border-color: #c9a060;
-  background: rgba(255, 248, 238, 0.12);
+  background: rgba(255, 248, 238, 0.18);
   box-shadow: 0 0 0 4px rgba(201, 160, 96, 0.12);
 }
 

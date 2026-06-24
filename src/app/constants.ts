@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 export const STORE = {
   name: "Sardar-G Fabrics",
   phoneDisplay: "0315-9457186",
-  phoneHref: "tel:03159457186",
+  phoneHref: "tel:+923159457186",
   address: "Shop # G-5, Malikabad Shopping Mall, Rehmanabad Chowk, Murree Road, Rawalpindi",
   get mapsUrl() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.address)}`;
@@ -16,7 +16,7 @@ export const GOLD = "#C9A060";
 
 export const GLASS = "bg-white/10 backdrop-blur-xl border border-white/25";
 export const CARD_GLASS =
-  "bg-white/75 dark:bg-white/[0.04] backdrop-blur-2xl border border-black/5 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-black/40";
+  "bg-[#fffaf3]/88 dark:bg-white/[0.05] backdrop-blur-2xl border border-[#e7d8ca] dark:border-white/10 shadow-lg shadow-[#7d0020]/8 dark:shadow-none";
 
 export const POPPINS: CSSProperties = { fontFamily: "'Poppins', sans-serif" };
 export const MONO: CSSProperties = { fontFamily: "'DM Mono', monospace" };

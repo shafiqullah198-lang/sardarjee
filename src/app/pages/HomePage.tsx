@@ -177,7 +177,7 @@ function CollectionsSection({ categories }: { categories: UiCategory[] }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
           {categories.map((cat, index) => (
             <motion.div key={cat.slug || `${cat.name}-${index}`} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.07, duration: 0.6 }}>
-              <Link to={cat.slug ? ROUTES.shopCategory(cat.slug) : ROUTES.shop} className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-secondary block border border-white/10 shadow-xl shadow-black/10">
+              <Link to={cat.slug ? ROUTES.shopCategory(cat.slug) : ROUTES.shop} className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-secondary block border border-white/10 shadow-lg shadow-[#7d0020]/10">
                 {cat.img ? (
                   <img src={cat.img} alt={cat.name} className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                 ) : (
@@ -283,7 +283,7 @@ function FabricHouseSection({ products }: { products: UiProduct[] }) {
           <p className="text-white/70 text-[14px] sm:text-[16px] leading-relaxed mb-8">
             Discover refined fabrics, elevated tailoring, and timeless pieces selected from our latest uploaded collections.
           </p>
-          <Link to={ROUTES.shop} className="inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-white shadow-xl shadow-black/30 transition-all duration-300 hover:gap-4 hover:scale-[1.02]" style={{ background: CRIMSON }}>
+          <Link to={ROUTES.shop} className="inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-[11px] tracking-[0.18em] uppercase font-bold text-white shadow-lg shadow-[#7d0020]/18 transition-all duration-300 hover:gap-4 hover:scale-[1.02]" style={{ background: CRIMSON }}>
             Explore Collection <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </motion.div>
@@ -298,7 +298,7 @@ function FabricHouseSection({ products }: { products: UiProduct[] }) {
                 transition={{ delay: index * 0.08, duration: 0.65 }}
                 className={index % 2 === 0 ? "translate-y-0 sm:-translate-y-5" : "translate-y-5 sm:translate-y-8"}
               >
-                <Link to={ROUTES.product(product.id)} className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-white/10 shadow-2xl shadow-black/45 ring-1 ring-white/15">
+                <Link to={ROUTES.product(product.id)} className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-white/10 shadow-lg shadow-[#7d0020]/18 ring-1 ring-white/15">
                   <img src={product.img} alt={product.name} className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-white/10 opacity-90" />
                 </Link>
@@ -342,7 +342,7 @@ function StorySection({ stats, story, products }: { stats: ReturnType<typeof use
             )}
           </motion.div>
           {storyImage && (
-            <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="aspect-[4/5] overflow-hidden rounded-3xl bg-muted shadow-2xl shadow-black/10">
+            <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="aspect-[4/5] overflow-hidden rounded-3xl bg-muted shadow-lg shadow-[#7d0020]/8">
               <img src={storyImage} alt="25 Years of Hard Work and Trusted Quality" className="w-full h-full object-cover object-center" loading="lazy" />
             </motion.div>
           )}
@@ -374,7 +374,7 @@ function LookbookSection({ products }: { products: UiProduct[] }) {
         </div>
         <div className="grid auto-rows-[220px] grid-cols-1 gap-2.5 sm:grid-cols-2 sm:auto-rows-[260px] sm:gap-4 md:grid-cols-4 md:auto-rows-[190px] lg:auto-rows-[230px]">
           {imageProducts.map((product, index) => (
-            <Link key={`${product.id}-${index}`} to={ROUTES.product(product.id)} className={`group relative overflow-hidden rounded-2xl bg-muted shadow-xl shadow-black/10 ${tileClasses[index] ?? ""}`}>
+            <Link key={`${product.id}-${index}`} to={ROUTES.product(product.id)} className={`group relative overflow-hidden rounded-2xl bg-muted shadow-lg shadow-[#7d0020]/8 ${tileClasses[index] ?? ""}`}>
               <img src={product.img} alt={product.name} className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-white/10 opacity-70" />
             </Link>

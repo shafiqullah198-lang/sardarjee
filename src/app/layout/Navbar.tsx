@@ -73,7 +73,7 @@ export function Navbar() {
     <>
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
-          solidNav ? `${GLASS} dark:bg-black/30 shadow-lg shadow-black/10` : ""
+          solidNav ? `${GLASS} dark:bg-black/30 shadow-md shadow-[#7d0020]/8` : ""
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-[64px] sm:h-[70px] flex items-center gap-3 sm:gap-6 min-w-0">

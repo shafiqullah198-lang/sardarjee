@@ -81,14 +81,14 @@ export function OrderTrackingPage() {
           <p className="mx-auto mt-4 max-w-2xl text-sm text-[#72514e]">Enter your tracking ID or phone number to view payment, products, and delivery progress.</p>
         </motion.div>
 
-        <form onSubmit={submit} className="mx-auto flex max-w-3xl flex-col gap-3 rounded-[1.5rem] border border-[#e1cfc0] bg-white/88 p-4 shadow-xl shadow-[#7d0020]/8 sm:flex-row sm:p-5">
+        <form onSubmit={submit} className="mx-auto flex max-w-3xl flex-col gap-3 rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-4 shadow-xl shadow-[#7d0020]/8 sm:flex-row sm:p-5">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a6460]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="SG-20260607-4832 or phone number"
-              className="w-full rounded-full border border-[#eadbd4] bg-[#fffaf3] py-3.5 pl-11 pr-5 text-sm font-semibold text-[#1a0808] outline-none focus:border-[#7d0020] focus:bg-white"
+              className="w-full rounded-full border border-[#d8b9a8] bg-[#fff8ee] py-3.5 pl-11 pr-5 text-sm font-semibold text-[#1a0808] outline-none focus:border-[#7d0020] focus:bg-[#fffdf8]"
             />
           </div>
           <button disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-[11px] font-extrabold uppercase tracking-[0.2em] text-white disabled:opacity-60" style={{ background: CRIMSON }}>
@@ -101,7 +101,7 @@ export function OrderTrackingPage() {
 
         {order && (
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
+            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.24em] text-[#9b7a43]">Tracking ID</p>
@@ -135,7 +135,7 @@ export function OrderTrackingPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
+            <section className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 sm:p-6">
               <div className="mb-6 flex items-center gap-3">
                 <Truck className="h-5 w-5" style={{ color: GOLD }} />
                 <h3 className="text-xl font-extrabold" style={POPPINS}>Delivery Progress</h3>

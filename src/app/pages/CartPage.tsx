@@ -76,7 +76,7 @@ export function CartPage() {
               ))}
             </section>
 
-            <aside className="rounded-[1.5rem] border border-[#e1cfc0] bg-white/86 p-5 shadow-xl shadow-[#7d0020]/8 backdrop-blur sm:p-6 lg:sticky lg:top-28">
+            <aside className="rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-5 shadow-xl shadow-[#7d0020]/8 backdrop-blur sm:p-6 lg:sticky lg:top-28">
               <div className="flex items-center gap-3 border-b border-[#eadbd4] pb-5">
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff2d8] text-[#7d0020]">
                   <ShoppingBag className="h-5 w-5" />
@@ -110,7 +110,7 @@ export function CartPage() {
             </aside>
           </div>
         ) : (
-          <section className="rounded-[1.75rem] border border-[#eadbd4] bg-white/82 px-5 py-14 text-center shadow-xl shadow-[#7d0020]/8 sm:px-8">
+          <section className="rounded-[1.75rem] border border-[#eadbd4] bg-[#fffaf3]/90 px-5 py-14 text-center shadow-xl shadow-[#7d0020]/8 sm:px-8">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#fff2d8] text-[#7d0020]">
               <ShoppingBag className="h-7 w-7" />
             </div>
@@ -166,7 +166,7 @@ function CartItemCard({
   }
 
   return (
-    <article className="grid gap-4 rounded-[1.5rem] border border-[#e1cfc0] bg-white/86 p-4 shadow-lg shadow-[#7d0020]/6 backdrop-blur sm:grid-cols-[112px_minmax(0,1fr)] sm:p-5">
+    <article className="grid gap-4 rounded-[1.5rem] border border-[#e1cfc0] bg-[#fffaf3]/90 p-4 shadow-lg shadow-[#7d0020]/6 backdrop-blur sm:grid-cols-[112px_minmax(0,1fr)] sm:p-5">
       <Link to={ROUTES.product(line.productId)} className="aspect-[3/4] overflow-hidden rounded-2xl bg-[#f0e4df] sm:w-28">
         {line.img ? (
           <img src={line.img} alt={line.name} className="h-full w-full object-cover" />

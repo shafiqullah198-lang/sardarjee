@@ -525,7 +525,7 @@ const AdminSidebar = memo(function AdminSidebar({
               key={id}
               onClick={() => onTab(id)}
               title={label}
-              className={`group flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-3.5 text-left text-sm font-semibold transition-all duration-[250ms] ease-out ${collapsed ? "lg:justify-center lg:px-3" : ""} ${active === id ? "bg-white text-[#18070b] shadow-xl shadow-black/15" : "text-white/62 hover:bg-white/10 hover:text-white"}`}
+              className={`group flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-3.5 text-left text-sm font-semibold transition-all duration-[250ms] ease-out ${collapsed ? "lg:justify-center lg:px-3" : ""} ${active === id ? "bg-[#fff8ee] text-[#18070b] shadow-md shadow-[#7d0020]/18" : "text-white/62 hover:bg-white/10 hover:text-white"}`}
             >
               <Icon className={`h-4 w-4 ${active === id ? "text-[#b21f36]" : "text-[#d7ad62]"}`} />
               <span className={`min-w-0 truncate transition-all duration-300 ${collapsed ? "lg:pointer-events-none lg:w-0 lg:opacity-0" : "opacity-100"}`}>{label}</span>
@@ -693,7 +693,7 @@ function paymentMethodLabel(method: string | null | undefined) {
 function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   return (
     <div className="invoice-modal fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden bg-black/55 p-3 backdrop-blur-sm print:static print:block print:h-auto print:min-h-0 print:bg-white print:p-0 print:backdrop-blur-0 sm:p-4">
-      <section className={`invoice-modal-content max-h-[92vh] w-full max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-[1.5rem] border border-white/25 bg-white p-4 shadow-2xl print:m-0 print:max-h-none print:min-h-0 print:w-full print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-white print:p-0 print:shadow-none sm:max-w-[calc(100vw-2rem)] sm:rounded-[2rem] sm:p-6 ${wide ? "lg:max-w-5xl" : "lg:max-w-2xl"}`}>
+      <section className={`invoice-modal-content max-h-[92vh] w-full max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-[1.5rem] border border-[#e7d8ca] bg-[#fffaf3] p-4 text-[#1a0808] shadow-xl shadow-[#7d0020]/12 dark:border-white/10 dark:bg-[#160b0c] dark:text-[#f6eee8] print:m-0 print:max-h-none print:min-h-0 print:w-full print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-white print:p-0 print:shadow-none sm:max-w-[calc(100vw-2rem)] sm:rounded-[2rem] sm:p-6 ${wide ? "lg:max-w-5xl" : "lg:max-w-2xl"}`}>
         <div className="mb-5 flex min-w-0 items-center justify-between gap-4 print:hidden">
           <h3 className="min-w-0 text-lg font-extrabold sm:text-xl" style={POPPINS}>{title}</h3>
           <button onClick={onClose} className="rounded-full border border-border p-2 transition hover:bg-muted"><X className="h-4 w-4" /></button>
@@ -735,7 +735,7 @@ function ConfirmModal({
 
 function EmptyState({ title, message, action }: { title: string; message: string; action?: ReactNode }) {
   return (
-    <div className="rounded-[2rem] border border-dashed border-border bg-white/55 p-5 text-center sm:p-8">
+    <div className="rounded-[2rem] border border-dashed border-[#d8c7b8] bg-[#fff8ee]/80 p-5 text-center text-[#1a0808] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#f6eee8] sm:p-8">
       <Sparkles className="mx-auto h-8 w-8 text-[#b88738]" />
       <h3 className="mt-3 text-lg font-extrabold" style={POPPINS}>{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{message}</p>
