@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 import random
+import time
 from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -46,6 +47,31 @@ def password_reset_email_config_error():
     if settings.EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend":
         missing.append("EMAIL_BACKEND=smtp")
     return missing
+
+
+def send_password_reset_otp_email(user, otp):
+    subject = "Your Sardar-G Fabrics password reset OTP"
+    message = (
+        "We received a request to reset your Sardar-G Fabrics password.\n\n"
+        f"Your OTP is: {otp}\n\n"
+        "This code expires in 10 minutes.\n\n"
+        "If you did not request this, you can ignore this email."
+    )
+    for attempt in range(1, 4):
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            return True
+        except Exception:
+            logger.exception("Password reset OTP email failed for user id %s on attempt %s", user.pk, attempt)
+            if attempt < 3:
+                time.sleep(1)
+    return False
 
 
 class RegisterView(generics.CreateAPIView):
@@ -160,28 +186,13 @@ class ForgotPasswordView(APIView):
                 otp_hash=make_password(otp),
                 expires_at=now + timedelta(minutes=10),
             )
-            try:
-                send_mail(
-                    subject="Your Sardar-G Fabrics password reset OTP",
-                    message=(
-                        "We received a request to reset your Sardar-G Fabrics password.\n\n"
-                        f"Your OTP is: {otp}\n\n"
-                        "This code expires in 10 minutes.\n\n"
-                        "If you did not request this, you can ignore this email."
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except Exception as exc:
-                logger.exception("Password reset OTP email failed for user id %s", user.pk)
+            if not send_password_reset_otp_email(user, otp):
                 otp_record.used_at = timezone.now()
                 otp_record.save(update_fields=["used_at", "updated_at"])
-                if settings.DEBUG:
-                    return Response(
-                        {"detail": f"Password reset email could not be sent: {exc.__class__.__name__}."},
-                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    )
+                return Response(
+                    {"detail": "Email service is temporarily busy. Please try again in a few seconds."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
 
         return Response({"detail": self.success_message}, status=status.HTTP_200_OK)
 
