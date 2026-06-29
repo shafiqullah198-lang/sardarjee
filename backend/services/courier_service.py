@@ -136,11 +136,88 @@ class LeopardsCourierProvider:
         }
 
 
+class PostExCourierProvider:
+    company = "postex"
+    default_endpoint = "https://api.postex.pk/services/integration/api/order/v3/create-order"
+
+    def __init__(self):
+        self.api_token = _env("POSTEX_API_TOKEN")
+        base_url = _env("POSTEX_API_BASE_URL", self.default_endpoint).rstrip("/")
+        if base_url.endswith("/create-order"):
+            self.create_order_url = base_url
+        else:
+            self.create_order_url = f"{base_url}/services/integration/api/order/v3/create-order"
+
+    def create_shipment(self, payload):
+        if not self.api_token:
+            raise CourierBookingError("PostEx API token is not configured.")
+
+        request_payload = {
+            "orderRefNumber": payload["order_id"],
+            "invoicePayment": payload["cod_amount"],
+            "customerName": payload["customer_name"],
+            "customerPhone": payload["customer_phone"],
+            "deliveryAddress": payload["customer_address"],
+            "cityName": payload["customer_city"],
+            "items": payload["quantity"],
+            "orderDetail": ", ".join(payload["product_names"]),
+            "transactionNotes": payload["special_instructions"],
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "token": self.api_token,
+        }
+        logger.info("PostEx request payload: %s", request_payload)
+        try:
+            response = requests.post(self.create_order_url, json=request_payload, headers=headers, timeout=20)
+            try:
+                response_data = response.json()
+            except ValueError:
+                response_data = {"raw": response.text}
+        except requests.RequestException as exc:
+            logger.exception("PostEx API request failed")
+            raise CourierBookingError(str(exc), {"error": str(exc), "payload": request_payload}) from exc
+
+        logger.info("PostEx response: %s", response_data)
+        if response.status_code >= 400:
+            raise CourierBookingError("PostEx API returned an error.", response_data)
+
+        success = str(response_data.get("statusCode", "")).startswith("2") if isinstance(response_data, dict) else True
+        if isinstance(response_data, dict) and response_data.get("statusCode") and not success:
+            message = response_data.get("statusMessage") or response_data.get("message") or "PostEx API returned an error."
+            raise CourierBookingError(str(message), response_data)
+
+        tracking_number = _first_value(response_data, (
+            "trackingNumber",
+            "tracking_number",
+            "trackingNo",
+            "tracking_no",
+            "consignmentNo",
+            "cn_number",
+        ))
+        shipment_id = _first_value(response_data, (
+            "shipmentId",
+            "shipment_id",
+            "orderId",
+            "order_id",
+            "id",
+        ))
+        if not tracking_number:
+            raise CourierBookingError("PostEx API response did not include a tracking number.", response_data)
+        return {
+            "shipment_id": shipment_id or tracking_number,
+            "tracking_number": tracking_number,
+            "response": response_data,
+        }
+
+
 def _provider():
-    provider = _env("COURIER_PROVIDER", "leopards").lower()
-    if provider == "leopards":
-        return LeopardsCourierProvider()
-    raise CourierBookingError(f"Unsupported courier provider: {provider}")
+    provider = _env("COURIER_PROVIDER").lower()
+    if provider == "postex":
+        return PostExCourierProvider()
+    raise CourierBookingError(
+        f"Unsupported courier provider: {provider or '<missing>'}. Supported providers: postex"
+    )
 
 
 def _save_failure(order, provider_name, response):
@@ -157,7 +234,7 @@ def create_courier_shipment(order):
             raise CourierBookingError("Courier booking already exists.", {"error": "duplicate_booking"})
         if order.courier_booking_status == "booking":
             raise CourierBookingError("Courier booking is already in progress.", {"error": "booking_in_progress"})
-        provider_name = _env("COURIER_PROVIDER", "leopards").lower()
+        provider_name = _env("COURIER_PROVIDER").lower()
         order.courier_company = provider_name
         order.courier_booking_status = "booking"
         order.save(update_fields=["courier_company", "courier_booking_status", "updated_at"])
@@ -170,12 +247,12 @@ def create_courier_shipment(order):
         result = provider.create_shipment(payload)
     except CourierBookingError as exc:
         logger.warning("Courier booking failed for order %s: %s", order.number, exc)
-        _save_failure(order, _env("COURIER_PROVIDER", "leopards").lower(), exc.response)
+        _save_failure(order, _env("COURIER_PROVIDER").lower(), exc.response)
         raise
     except Exception as exc:
         logger.exception("Unexpected courier booking error for order %s", order.number)
         response = {"error": str(exc)}
-        _save_failure(order, _env("COURIER_PROVIDER", "leopards").lower(), response)
+        _save_failure(order, _env("COURIER_PROVIDER").lower(), response)
         raise CourierBookingError(str(exc), response) from exc
 
     with transaction.atomic():
