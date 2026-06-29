@@ -10,8 +10,8 @@ import { ROUTES } from "@/app/routes";
 import { fetchCareerOpportunities } from "@/services/cms";
 import type { ApiCareerOpportunity } from "@/services/types";
 
-const PHONE = "0315-9457186";
-const PHONE_HREF = "tel:+923159457186";
+const PHONE = "03159157185";
+const PHONE_HREF = "tel:+923159157185";
 const ADDRESS = "Shop # G-5, Malikabad Shopping Mall, Rehmanabad Chowk, Murree Road, Rawalpindi";
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
 
@@ -158,7 +158,7 @@ export function ReturnsPage() {
       <InfoGrid items={[
         { title: "Inspection", text: "Please inspect your fabric at delivery or pickup and contact us quickly if there is a concern." },
         { title: "Uncut Fabric", text: "Returns are easiest for unused, uncut, and undamaged fabric with original purchase details." },
-        { title: "Support", text: "Call 0315-9457186 with your order number or visit the shop for help." },
+        { title: "Support", text: "Call 03159157185 with your order number or visit the shop for help." },
       ]} />
     </PageShell>
   );

@@ -29,14 +29,14 @@ const paymentOptions: {
     title: "EasyPaisa",
     subtitle: "Send payment before confirmation",
     icon: Phone,
-    instructions: ["EasyPaisa Account: 0315-9457186", "Account Title: Sardar-G Fabrics", "Upload your payment screenshot before placing order.", "Order remains pending verification until admin confirms."],
+    instructions: ["EasyPaisa Account: 03159157185", "Account Title: Sardar-G Fabrics", "Upload your payment screenshot before placing order.", "Order remains pending verification until admin confirms."],
   },
   {
     value: "jazzcash",
     title: "JazzCash",
     subtitle: "Mobile wallet transfer",
     icon: CreditCard,
-    instructions: ["JazzCash Number: 0315-9457186", "Account Title: Sardar-G Fabrics", "Upload your payment screenshot before placing order.", "Admin will mark payment paid after verification."],
+    instructions: ["JazzCash Number: 03159157185", "Account Title: Sardar-G Fabrics", "Upload your payment screenshot before placing order.", "Admin will mark payment paid after verification."],
   },
   {
     value: "bank_transfer",

@@ -63,7 +63,7 @@ export function InvoiceView({ order: rawOrder }: { order: ApiTrackedOrder }) {
                 <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#7d0020]">Men&apos;s Suiting &amp; Stitching Cloth House</p>
                 <div className="mt-3 space-y-1 text-[11px] leading-4 text-[#6f5960]">
                   <p>Shop # G-5, Malikabad Shopping Mall, Rehmanabad Chowk, Murree Road, Rawalpindi</p>
-                  <p className="font-extrabold text-[#251116]">0315-9457186</p>
+                  <p className="font-extrabold text-[#251116]">03159157185</p>
                 </div>
               </div>
             </div>
@@ -135,7 +135,7 @@ export function InvoiceView({ order: rawOrder }: { order: ApiTrackedOrder }) {
 
         <div className="avoid-print-break mt-5 border-t border-[#eadbd4] pt-4 text-center text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#8a7780] print:mt-3 print:pt-3">
           <p>Powered by SPARK TECHNOLOGY</p>
-          <p className="mt-1">PH: 03480235167</p>
+          <p className="mt-1">PH: 03159157185</p>
         </div>
       </div>
     </div>

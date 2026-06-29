@@ -3,8 +3,8 @@ import type { CSSProperties } from "react";
 /** Single source of truth for the real store — used by StoresPage & Footer */
 export const STORE = {
   name: "Sardar-G Fabrics",
-  phoneDisplay: "0315-9457186",
-  phoneHref: "tel:+923159457186",
+  phoneDisplay: "03159157185",
+  phoneHref: "tel:+923159157185",
   address: "Shop # G-5, Malikabad Shopping Mall, Rehmanabad Chowk, Murree Road, Rawalpindi",
   get mapsUrl() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.address)}`;
