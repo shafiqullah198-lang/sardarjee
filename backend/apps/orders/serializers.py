@@ -66,6 +66,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "refunded_at",
             "refunded_amount",
             "refund_reason",
+            "courier_company",
+            "courier_shipment_id",
+            "courier_tracking_number",
+            "courier_booking_status",
+            "courier_response",
+            "courier_created_at",
             "created_at",
             "items",
             "status_events",
@@ -93,6 +99,7 @@ class OrderSerializer(serializers.ModelSerializer):
         return {
             "name": obj.shipping_name,
             "phone": obj.shipping_phone,
+            "address": obj.shipping_line1,
             "city": obj.shipping_city,
             "country": obj.shipping_country,
         }

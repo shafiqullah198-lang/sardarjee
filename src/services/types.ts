@@ -141,6 +141,7 @@ export interface ApiTrackedOrder {
   customer: {
     name: string;
     phone: string;
+    address?: string;
     city: string;
     country: string;
   };
@@ -153,6 +154,13 @@ export interface ApiTrackedOrder {
   refunded_at: string | null;
   refunded_amount: string;
   refund_reason: string;
+  courier_company?: string;
+  courier_shipment_id?: string;
+  courier_tracking_number?: string;
+  courier_booking_status?: string;
+  courier_response?: Record<string, unknown> | string | null;
+  courier_created_at?: string | null;
+  courier_warning?: string;
   created_at: string;
   items: ApiOrderItem[];
   status_events: ApiOrderStatusEvent[];

@@ -38,6 +38,7 @@ import { InvoiceView } from "@/app/components/InvoiceView";
 import { PasswordInput } from "@/app/components/PasswordInput";
 import {
   createHomepageStat,
+  createCourierBooking,
   createPosSale,
   deleteAdminCareer,
   deleteAdminProduct,
@@ -2146,6 +2147,21 @@ function Orders({
     }
   }
 
+  async function retryCourierBooking(order: ApiTrackedOrder) {
+    try {
+      const updated = await createCourierBooking(order.id);
+      setSelected(updated);
+      notify("success", "Order sent to shipment successfully.");
+      await reload();
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.data && typeof error.data === "object" && "id" in error.data) {
+        setSelected(error.data as ApiTrackedOrder);
+      }
+      notify("error", getErrorMessage(error));
+      await reload();
+    }
+  }
+
   async function verifyPayment(order: ApiTrackedOrder) {
     try {
       await updateAdminOrder(order.id, { payment_status: "success", note: "Payment verified by admin" });
@@ -2184,7 +2200,7 @@ function Orders({
         <OrdersTable orders={orders} onView={setSelected} onStatus={changeStatus} onVerify={verifyPayment} onRefund={setPendingRefund} onPrint={printOrder} />
         <PaginationControls meta={meta} onPage={(page) => loadOrders(page)} onPageSize={(pageSize) => loadOrders(1, pageSize)} />
       </Panel>
-      {selected && <OrderDetailModal order={selected} onClose={() => setSelected(null)} />}
+      {selected && <OrderDetailModal order={selected} onClose={() => setSelected(null)} onRetryCourier={retryCourierBooking} />}
       {pendingRefund && (
         <ConfirmModal
           title="Confirm Refund"
@@ -2228,7 +2244,28 @@ function OrdersTable({ orders, compact = false, onView, onStatus, onVerify, onRe
   );
 }
 
-function OrderDetailModal({ order, onClose }: { order: ApiTrackedOrder; onClose: () => void }) {
+function courierErrorMessage(response: ApiTrackedOrder["courier_response"]) {
+  if (!response) return "";
+  if (typeof response === "string") return response;
+  const error = response.error || response.message || response.detail;
+  if (error) return String(error);
+  return JSON.stringify(response);
+}
+
+function OrderDetailModal({ order, onClose, onRetryCourier }: { order: ApiTrackedOrder; onClose: () => void; onRetryCourier: (order: ApiTrackedOrder) => Promise<void> }) {
+  const [retryingCourier, setRetryingCourier] = useState(false);
+  const courierError = courierErrorMessage(order.courier_response);
+  const canRetryCourier = order.status === "confirmed" && !order.courier_tracking_number && ["failed", ""].includes(order.courier_booking_status || "");
+
+  async function retryCourier() {
+    setRetryingCourier(true);
+    try {
+      await onRetryCourier(order);
+    } finally {
+      setRetryingCourier(false);
+    }
+  }
+
   return (
     <Modal title={`Order ${order.number}`} onClose={onClose} wide>
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
@@ -2238,11 +2275,37 @@ function OrderDetailModal({ order, onClose }: { order: ApiTrackedOrder; onClose:
             <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-[#7d0020]">{order.tracking_id || order.number}</p>
             <p className="mt-2 font-extrabold">{order.customer?.name || "Customer"}</p>
             <p className="text-sm text-muted-foreground">{order.customer?.phone || "No phone"}</p>
+            {order.customer?.address && <p className="text-sm text-muted-foreground">{order.customer.address}</p>}
             <p className="text-sm text-muted-foreground">{order.customer?.city || "City"}, {order.customer?.country || "Pakistan"}</p>
           </div>
           <div className="rounded-3xl bg-background/70 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Status</p>
             <div className="mt-3 flex flex-wrap gap-2"><Badge tone={statusTone(order.status)}>{order.status}</Badge><Badge tone={statusTone(order.payment_status)}>{order.payment_status}</Badge></div>
+          </div>
+          <div className="rounded-3xl bg-background/70 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Courier</p>
+                <p className="mt-2 font-extrabold capitalize">{order.courier_company || "Not booked"}</p>
+                <p className="text-sm text-muted-foreground">Status: {order.courier_booking_status || "pending"}</p>
+                <p className="text-sm font-bold text-[#7d0020]">{order.courier_tracking_number || "No tracking number yet"}</p>
+              </div>
+              {canRetryCourier && (
+                <button
+                  onClick={retryCourier}
+                  disabled={retryingCourier}
+                  className="rounded-full border border-[#d7ad62] bg-[#fff7e6] px-3 py-2 text-xs font-bold text-[#7a4f13] disabled:opacity-60"
+                >
+                  <PackagePlus className="mr-1 inline h-3.5 w-3.5" />{retryingCourier ? "Sending..." : "Send to Shipment"}
+                </button>
+              )}
+            </div>
+            {order.courier_booking_status === "failed" && (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <p className="font-bold">Order confirmed but courier booking failed.</p>
+                {courierError && <p className="mt-1 break-words">{courierError}</p>}
+              </div>
+            )}
           </div>
           {order.payment_screenshot_url && (
             <div className="rounded-3xl bg-background/70 p-4">

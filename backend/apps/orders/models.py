@@ -44,6 +44,12 @@ class Order(TimeStampedModel):
     refunded_at = models.DateTimeField(null=True, blank=True)
     refunded_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     refund_reason = models.CharField(max_length=255, blank=True)
+    courier_company = models.CharField(max_length=50, blank=True)
+    courier_shipment_id = models.CharField(max_length=100, blank=True)
+    courier_tracking_number = models.CharField(max_length=100, blank=True)
+    courier_booking_status = models.CharField(max_length=30, blank=True)
+    courier_response = models.JSONField(default=dict, blank=True)
+    courier_created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         indexes = [

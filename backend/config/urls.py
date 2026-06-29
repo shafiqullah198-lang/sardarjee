@@ -45,6 +45,7 @@ from apps.cms.views import (
 from apps.checkout.views import CheckoutView
 from apps.orders.views import (
     AdminDashboardView,
+    AdminCreateCourierBookingView,
     AdminInventoryMoveView,
     AdminInventoryView,
     InventoryItemStockView,
@@ -172,6 +173,7 @@ urlpatterns = [
     path("api/v1/inventory/items/<int:pk>/stock/", InventoryItemStockView.as_view(), name="inventory-item-stock"),
     path("api/v1/admin/orders/", AdminOrdersView.as_view(), name="admin-orders"),
     path("api/v1/admin/orders/<int:pk>/", AdminOrdersView.as_view(), name="admin-order-detail"),
+    path("api/v1/admin/orders/<int:order_id>/create-courier-booking/", AdminCreateCourierBookingView.as_view(), name="admin-create-courier-booking"),
     path("api/v1/admin/order-events/", AdminOrderEventsView.as_view(), name="admin-order-events"),
     path("api/v1/admin/pos/sales/", AdminPosSaleView.as_view(), name="admin-pos-sales"),
     path("api/v1/admin/sales/", AdminSalesView.as_view(), name="admin-sales"),

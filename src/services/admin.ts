@@ -208,6 +208,13 @@ export async function fetchAdminOrders(params?: AdminPageParams): Promise<AdminP
 
 export async function updateAdminOrder(id: number, payload: Record<string, unknown>): Promise<ApiTrackedOrder> {
   const { data } = await apiClient.patch<ApiTrackedOrder>(apiUrl(`admin/orders/${id}/`), payload);
+  clearCachedGets(/admin\/orders|admin\/dashboard|admin\/order-events/);
+  return data;
+}
+
+export async function createCourierBooking(id: number): Promise<ApiTrackedOrder> {
+  const { data } = await apiClient.post<ApiTrackedOrder>(apiUrl(`admin/orders/${id}/create-courier-booking/`));
+  clearCachedGets(/admin\/orders|admin\/dashboard|admin\/order-events/);
   return data;
 }
 

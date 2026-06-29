@@ -23,6 +23,7 @@ from apps.orders.serializers import OrderSerializer, OrderStatusEventSerializer
 from apps.orders.services import complete_sale, refund_sale
 from apps.payments.models import PaymentTransaction
 from apps.reviews.models import Review
+from services.courier_service import CourierBookingError, create_courier_shipment
 
 
 PAGE_SIZE_OPTIONS = (20, 50, 100, 200)
@@ -890,6 +891,28 @@ class AdminOrdersView(APIView):
             else:
                 PaymentTransaction.objects.create(order=order, provider=PaymentTransaction.Provider.CASH, status=request.data["payment_status"], amount=order.grand_total)
         order.status_events.create(from_status=old_status, to_status=order.status, note=request.data.get("note", "Admin update"))
+        data = OrderSerializer(order, context={"request": request}).data
+        return Response(data)
+
+
+class AdminCreateCourierBookingView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, order_id):
+        order = get_object_or_404(Order.objects.prefetch_related("items"), pk=order_id, source=Order.Source.WEBSITE)
+        if order.status != Order.Status.CONFIRMED:
+            return Response({"detail": "Courier booking is only available for confirmed orders."}, status=status.HTTP_400_BAD_REQUEST)
+        if order.courier_tracking_number:
+            return Response({"detail": "Courier booking already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            order = create_courier_shipment(order)
+        except CourierBookingError as exc:
+            order.refresh_from_db()
+            return Response({
+                **OrderSerializer(order, context={"request": request}).data,
+                "detail": "Order confirmed but courier booking failed.",
+                "courier_error": exc.response,
+            }, status=status.HTTP_400_BAD_REQUEST)
         return Response(OrderSerializer(order, context={"request": request}).data)
 
 
